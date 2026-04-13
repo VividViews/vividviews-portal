@@ -49,9 +49,9 @@
         <!-- Status Timeline -->
         <h3 style="margin-top:24px">Progress</h3>
         <div style="display:flex;flex-direction:column;gap:12px;margin-top:12px">
-          <% const statuses = ['submitted', 'in_review', 'in_progress', 'complete'];
-             const currentIdx = statuses.indexOf(request.status);
-             statuses.forEach((s, i) => { %>
+          <% var statuses = ['submitted', 'in_review', 'in_progress', 'complete'];
+             var currentIdx = statuses.indexOf(request.status);
+             statuses.forEach(function(s, i) { %>
             <div style="display:flex;align-items:center;gap:12px">
               <div style="width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;
                 <%= i <= currentIdx ? 'background:linear-gradient(135deg,#00d4ff,#7c3aed);color:white;box-shadow:0 0 12px rgba(0,212,255,0.3)' : 'background:rgba(255,255,255,0.05);color:var(--text-secondary);border:1px solid var(--card-border)' %>">

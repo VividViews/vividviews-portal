@@ -68,7 +68,7 @@
         <button class="tab-btn" onclick="showTab('users')">Users (<%= clientUsers.length %>)</button>
         <button class="tab-btn" onclick="showTab('sites')">Sites (<%= sites.length %>)</button>
         <button class="tab-btn" onclick="showTab('services')">Service Types (<%= serviceTypes.length %>)</button>
-        <% const clientTypeName = clientTypes.find(ct => ct.id === client.client_type_id); %>
+        <% var clientTypeName = clientTypes.find(function(ct){ return ct.id === client.client_type_id; }); %>
         <% if (clientTypeName && clientTypeName.name === 'Car Wash') { %>
           <button class="tab-btn" onclick="showTab('brands')">Car Wash Brands</button>
         <% } %>
@@ -96,7 +96,7 @@
           <div class="detail-row">
             <div class="detail-label">Type</div>
             <div class="detail-value">
-              <% const ct = clientTypes.find(t => t.id === client.client_type_id); %>
+              <% var ct = clientTypes.find(function(t){ return t.id === client.client_type_id; }); %>
               <span class="badge" style="background:rgba(0,212,255,0.15);color:#00d4ff"><%= ct ? ct.name : (client.client_type || 'Standard') %></span>
             </div>
           </div>
