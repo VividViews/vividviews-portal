@@ -405,6 +405,7 @@
         <span style="position:absolute;right:12px;top:50%;transform:translateY(-50%);width:8px;height:8px;border-radius:50%;background:#ef4444;box-shadow:0 0 8px rgba(239,68,68,0.6);animation:pulse-red 2s infinite"></span>
       <% } %>
     </a>
+    <a href="/admin/inventory" class="<%= (typeof navActive !== 'undefined' ? navActive : active) === 'inventory' ? 'active' : '' %>"><span class="nav-icon">📦</span> Inventory</a>
     <a href="/admin/revenue" class="<%= active === 'revenue' ? 'active' : '' %>"><span class="nav-icon">💰</span> Revenue</a>
     <a href="/admin/settings" class="<%= active === 'settings' ? 'active' : '' %>"><span class="nav-icon">⚙️</span> Settings</a>
   </div>
@@ -888,6 +889,7 @@
             </tbody>
           </table>
           <% } else { %>
+    <a href="/admin/inventory" class="<%= (typeof navActive !== 'undefined' ? navActive : active) === 'inventory' ? 'active' : '' %>"><span class="nav-icon">📦</span> Inventory</a>
             <p style="color:var(--text-secondary);font-size:14px">No projects yet. <a href="/admin/revenue" style="color:var(--cyan)">Go to Revenue</a> to add one.</p>
           <% } %>
         </div>

@@ -185,6 +185,28 @@ async function migrate() {
         sent_at DATETIME,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       );
+
+      CREATE TABLE IF NOT EXISTS inventory_items (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        client_id INTEGER NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+        item_name TEXT NOT NULL,
+        description TEXT DEFAULT '',
+        quantity INTEGER NOT NULL DEFAULT 0,
+        low_stock_threshold INTEGER NOT NULL DEFAULT 2,
+        unit TEXT NOT NULL DEFAULT 'units',
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE TABLE IF NOT EXISTS inventory_logs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        item_id INTEGER NOT NULL REFERENCES inventory_items(id) ON DELETE CASCADE,
+        change_type TEXT NOT NULL,
+        quantity_change INTEGER NOT NULL,
+        quantity_after INTEGER NOT NULL,
+        note TEXT DEFAULT '',
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      );
     `);
   } else {
     await db.exec(`
@@ -362,6 +384,28 @@ async function migrate() {
         labor_cost DECIMAL(10,2) NOT NULL DEFAULT 0,
         total_amount DECIMAL(10,2) NOT NULL DEFAULT 0,
         sent_at TIMESTAMPTZ,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      );
+
+      CREATE TABLE IF NOT EXISTS inventory_items (
+        id SERIAL PRIMARY KEY,
+        client_id INTEGER NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+        item_name TEXT NOT NULL,
+        description TEXT DEFAULT '',
+        quantity INTEGER NOT NULL DEFAULT 0,
+        low_stock_threshold INTEGER NOT NULL DEFAULT 2,
+        unit TEXT NOT NULL DEFAULT 'units',
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        updated_at TIMESTAMPTZ DEFAULT NOW()
+      );
+
+      CREATE TABLE IF NOT EXISTS inventory_logs (
+        id SERIAL PRIMARY KEY,
+        item_id INTEGER NOT NULL REFERENCES inventory_items(id) ON DELETE CASCADE,
+        change_type TEXT NOT NULL,
+        quantity_change INTEGER NOT NULL,
+        quantity_after INTEGER NOT NULL,
+        note TEXT DEFAULT '',
         created_at TIMESTAMPTZ DEFAULT NOW()
       );
 

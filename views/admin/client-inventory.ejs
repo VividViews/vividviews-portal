@@ -44,7 +44,6 @@
       z-index: 0;
     }
 
-    /* Sidebar */
     .sidebar {
       width: 260px;
       background: var(--sidebar-bg);
@@ -62,9 +61,7 @@
     .sidebar-brand {
       padding: 24px 20px;
       border-bottom: 1px solid var(--sidebar-border);
-      display: flex;
-      align-items: center;
-      gap: 12px;
+      display: flex; align-items: center; gap: 12px;
     }
 
     .sidebar-monogram {
@@ -76,15 +73,8 @@
       box-shadow: 0 0 20px rgba(0,212,255,0.3);
     }
 
-    .sidebar-brand-text h1 {
-      font-size: 18px; font-weight: 700; color: var(--text);
-      letter-spacing: -0.5px;
-    }
-
-    .sidebar-brand-text small {
-      display: block; font-size: 11px; color: var(--cyan);
-      text-transform: uppercase; letter-spacing: 1px; margin-top: 2px;
-    }
+    .sidebar-brand-text h1 { font-size: 18px; font-weight: 700; color: var(--text); letter-spacing: -0.5px; }
+    .sidebar-brand-text small { display: block; font-size: 11px; color: var(--cyan); text-transform: uppercase; letter-spacing: 1px; margin-top: 2px; }
 
     .sidebar-nav { flex: 1; padding: 16px 12px; }
 
@@ -96,9 +86,7 @@
       border-left: 3px solid transparent;
     }
 
-    .sidebar-nav a:hover {
-      background: rgba(0,212,255,0.05); color: var(--text);
-    }
+    .sidebar-nav a:hover { background: rgba(0,212,255,0.05); color: var(--text); }
 
     .sidebar-nav a.active {
       background: rgba(0,212,255,0.08); color: var(--cyan);
@@ -131,7 +119,6 @@
     }
     .btn-logout:hover { background: rgba(255,255,255,0.05); color: var(--text); border-color: rgba(255,255,255,0.2); }
 
-    /* Main */
     .main { margin-left: 260px; flex: 1; min-height: 100vh; position: relative; z-index: 1; }
 
     .topbar {
@@ -145,33 +132,6 @@
 
     .hamburger { display: none; background: none; border: none; font-size: 24px; cursor: pointer; color: var(--text); }
 
-    /* Stat Cards */
-    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 32px; }
-
-    .stat-card {
-      background: var(--card-bg); backdrop-filter: blur(20px);
-      border-radius: 12px; padding: 20px;
-      border: 1px solid var(--card-border);
-      box-shadow: var(--glow);
-      position: relative; overflow: hidden;
-    }
-    .stat-card::before {
-      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
-      background: var(--gradient);
-    }
-    .stat-card .stat-icon {
-      position: absolute; top: 16px; right: 16px; font-size: 24px; opacity: 0.5;
-      filter: drop-shadow(0 0 8px rgba(0,212,255,0.3));
-    }
-    .stat-card .stat-label {
-      font-size: 12px; color: var(--text-secondary); font-weight: 600;
-      text-transform: uppercase; letter-spacing: 0.5px;
-    }
-    .stat-card .stat-value {
-      font-size: 32px; font-weight: 700; color: var(--text); margin-top: 4px;
-    }
-
-    /* Cards */
     .card {
       background: var(--card-bg); backdrop-filter: blur(20px);
       border-radius: 12px; border: 1px solid var(--card-border);
@@ -183,7 +143,6 @@
     }
     .card-header h3 { font-size: 16px; font-weight: 600; color: var(--text); }
 
-    /* Tables */
     table { width: 100%; border-collapse: collapse; }
     th {
       text-align: left; padding: 12px 16px; font-size: 11px; font-weight: 600;
@@ -192,28 +151,20 @@
     }
     td { padding: 12px 16px; font-size: 14px; border-bottom: 1px solid var(--row-sep); color: var(--text); }
     tr:hover td { background: var(--hover-row); }
-    td a { color: var(--cyan); text-decoration: none; font-weight: 500; }
-    td a:hover { text-decoration: underline; text-shadow: 0 0 8px rgba(0,212,255,0.3); }
-    tr[style*="cursor"] { transition: all 0.2s; }
-    tr[style*="cursor"]:hover { box-shadow: inset 0 0 30px rgba(0,212,255,0.03); }
 
-    /* Badges */
     .badge { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; }
-    .badge-submitted { background: rgba(100,116,139,0.2); color: #94a3b8; box-shadow: 0 0 8px rgba(100,116,139,0.1); }
-    .badge-in_review { background: rgba(245,158,11,0.2); color: #fbbf24; box-shadow: 0 0 8px rgba(245,158,11,0.15); }
-    .badge-in_progress { background: rgba(0,212,255,0.15); color: #00d4ff; box-shadow: 0 0 8px rgba(0,212,255,0.15); }
-    .badge-complete { background: rgba(16,185,129,0.2); color: #10b981; box-shadow: 0 0 8px rgba(16,185,129,0.15); }
-    .badge-low { background: rgba(16,185,129,0.2); color: #10b981; box-shadow: 0 0 8px rgba(16,185,129,0.1); }
-    .badge-medium { background: rgba(245,158,11,0.2); color: #fbbf24; box-shadow: 0 0 8px rgba(245,158,11,0.1); }
-    .badge-high { background: rgba(249,115,22,0.2); color: #fb923c; box-shadow: 0 0 8px rgba(249,115,22,0.15); }
-    .badge-urgent { background: rgba(239,68,68,0.2); color: #ef4444; box-shadow: 0 0 8px rgba(239,68,68,0.2); animation: pulse-red 2s infinite; }
-    .badge-active { background: rgba(0,212,255,0.15); color: #00d4ff; }
-    .badge-completed { background: rgba(16,185,129,0.2); color: #10b981; }
-    .badge-cancelled { background: rgba(239,68,68,0.2); color: #ef4444; }
+    .badge-stock-ok { background: rgba(16,185,129,0.2); color: #10b981; box-shadow: 0 0 8px rgba(16,185,129,0.2); }
+    .badge-stock-low { background: rgba(245,158,11,0.2); color: #fbbf24; box-shadow: 0 0 8px rgba(245,158,11,0.2); animation: pulse-amber 2s infinite; }
+    .badge-stock-out { background: rgba(239,68,68,0.2); color: #ef4444; box-shadow: 0 0 8px rgba(239,68,68,0.3); animation: pulse-red 2s infinite; }
 
+    .badge-add { background: rgba(16,185,129,0.15); color: #10b981; }
+    .badge-use { background: rgba(0,212,255,0.15); color: #00d4ff; }
+    .badge-adjust { background: rgba(245,158,11,0.15); color: #fbbf24; }
+    .badge-remove { background: rgba(239,68,68,0.15); color: #ef4444; }
+
+    @keyframes pulse-amber { 0%,100%{box-shadow:0 0 8px rgba(245,158,11,0.2);} 50%{box-shadow:0 0 16px rgba(245,158,11,0.5);} }
     @keyframes pulse-red { 0%, 100% { box-shadow: 0 0 8px rgba(239,68,68,0.2); } 50% { box-shadow: 0 0 16px rgba(239,68,68,0.4); } }
 
-    /* Buttons */
     .btn {
       display: inline-flex; align-items: center; gap: 8px;
       padding: 10px 20px; border-radius: 8px; font-size: 14px; font-weight: 600;
@@ -222,114 +173,78 @@
     }
     .btn:hover { transform: translateY(-1px); }
 
-    .btn-primary {
-      background: var(--gradient); color: #fff;
-      box-shadow: 0 0 20px rgba(0,212,255,0.15);
-    }
+    .btn-primary { background: var(--gradient); color: #fff; box-shadow: 0 0 20px rgba(0,212,255,0.15); }
     .btn-primary:hover { box-shadow: 0 0 30px rgba(0,212,255,0.3); }
 
-    .btn-secondary {
-      background: var(--card-bg); color: var(--cyan);
-      border: 1px solid rgba(0,212,255,0.3);
-    }
+    .btn-secondary { background: var(--card-bg); color: var(--cyan); border: 1px solid rgba(0,212,255,0.3); }
     .btn-secondary:hover { background: rgba(0,212,255,0.08); border-color: var(--cyan); }
-
-    .btn-danger {
-      background: rgba(239,68,68,0.15); color: #ef4444;
-      border: 1px solid rgba(239,68,68,0.3);
-    }
-    .btn-danger:hover { background: rgba(239,68,68,0.25); }
 
     .btn-sm { padding: 6px 12px; font-size: 13px; }
 
-    /* Forms */
-    .form-group { margin-bottom: 20px; }
-    .form-group label {
-      display: block; font-size: 12px; font-weight: 600; color: #94a3b8;
-      margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px;
+    .btn-use {
+      background: rgba(0,212,255,0.15); color: #00d4ff;
+      border: 1px solid rgba(0,212,255,0.3);
+      padding: 4px 10px; font-size: 12px; border-radius: 6px;
+      cursor: pointer; font-family: inherit; font-weight: 600; transition: all 0.2s;
     }
+    .btn-use:hover { background: rgba(0,212,255,0.25); }
+
+    .btn-adjust {
+      background: rgba(100,116,139,0.15); color: #94a3b8;
+      border: 1px solid rgba(100,116,139,0.3);
+      padding: 4px 10px; font-size: 12px; border-radius: 6px;
+      cursor: pointer; font-family: inherit; font-weight: 600; transition: all 0.2s;
+    }
+    .btn-adjust:hover { background: rgba(100,116,139,0.25); }
+
+    .btn-del {
+      background: rgba(239,68,68,0.15); color: #ef4444;
+      border: 1px solid rgba(239,68,68,0.3);
+      padding: 4px 10px; font-size: 12px; border-radius: 6px;
+      cursor: pointer; font-family: inherit; font-weight: 600; transition: all 0.2s;
+    }
+    .btn-del:hover { background: rgba(239,68,68,0.25); }
+
     .form-control {
       width: 100%; padding: 10px 14px;
       background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
       border-radius: 8px; font-size: 14px; font-family: inherit;
       color: var(--text); transition: all 0.2s;
     }
-    .form-control:focus {
-      outline: none; border-color: var(--cyan);
-      box-shadow: 0 0 12px rgba(0,212,255,0.15);
-    }
-    textarea.form-control { resize: vertical; min-height: 100px; }
-    select.form-control {
-      appearance: none;
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2364748b' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
-      background-repeat: no-repeat; background-position: right 12px center; padding-right: 36px;
-    }
-    select.form-control option { background: #0a1628; color: var(--text); }
-
-    /* Alert */
-    .alert { padding: 12px 16px; border-radius: 8px; margin-bottom: 20px; font-size: 14px; }
-    .alert-error { background: rgba(239,68,68,0.15); color: #ef4444; border: 1px solid rgba(239,68,68,0.3); }
-
-    /* Filter bar */
-    .filter-bar {
-      display: flex; gap: 12px; flex-wrap: wrap;
-      padding: 16px 20px; background: rgba(255,255,255,0.02);
-      border-bottom: 1px solid var(--card-border);
-    }
-    .filter-bar select {
-      padding: 8px 32px 8px 12px; border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 8px; font-size: 13px; font-family: inherit;
-      background: rgba(255,255,255,0.05); color: var(--text);
-      appearance: none;
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2364748b' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
-      background-repeat: no-repeat; background-position: right 10px center;
-    }
-    .filter-bar select option { background: #0a1628; color: var(--text); }
-
-    /* Detail layout */
-    .detail-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 24px; }
-    .detail-section {
-      background: var(--card-bg); backdrop-filter: blur(20px);
-      border-radius: 12px; border: 1px solid var(--card-border);
-      padding: 24px; margin-bottom: 24px; box-shadow: var(--glow);
-    }
-    .detail-section h3 { font-size: 16px; font-weight: 600; color: var(--text); margin-bottom: 16px; }
-    .detail-row { display: flex; padding: 8px 0; border-bottom: 1px solid var(--row-sep); }
-    .detail-row:last-child { border-bottom: none; }
-    .detail-label { width: 140px; font-size: 13px; font-weight: 600; color: var(--text-secondary); flex-shrink: 0; }
-    .detail-value { font-size: 14px; color: var(--text); }
-
-    .inline-form { display: flex; gap: 8px; align-items: center; }
-    .inline-form input {
-      flex: 1; padding: 8px 12px; border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 8px; font-size: 14px; font-family: inherit;
-      background: rgba(255,255,255,0.05); color: var(--text);
-    }
-    .inline-form input:focus { outline: none; border-color: var(--cyan); box-shadow: 0 0 8px rgba(0,212,255,0.1); }
-
-    .tag {
-      display: inline-flex; align-items: center; gap: 6px;
-      padding: 4px 12px; background: rgba(0,212,255,0.1); color: var(--cyan);
-      border-radius: 999px; font-size: 13px; font-weight: 500; margin: 4px 4px 4px 0;
-    }
-    .tag button { background: none; border: none; color: var(--cyan); cursor: pointer; font-size: 16px; line-height: 1; padding: 0; opacity: 0.6; }
-    .tag button:hover { opacity: 1; }
+    .form-control:focus { outline: none; border-color: var(--cyan); box-shadow: 0 0 12px rgba(0,212,255,0.15); }
 
     .empty-state { text-align: center; padding: 48px 20px; color: var(--text-secondary); }
     .empty-state .icon { font-size: 48px; margin-bottom: 12px; }
     .empty-state p { font-size: 16px; }
 
-    .description-text { white-space: pre-wrap; line-height: 1.6; color: var(--text); }
-    .file-list { list-style: none; }
-    .file-list li { padding: 8px 0; border-bottom: 1px solid var(--row-sep); }
-    .file-list li:last-child { border-bottom: none; }
-    .file-list a { color: var(--cyan); text-decoration: none; font-size: 14px; }
-    .file-list a:hover { text-decoration: underline; }
+    .qty-big { font-size: 22px; font-weight: 700; }
 
-    /* Quick Actions */
-    .quick-actions { display: flex; gap: 12px; margin-bottom: 32px; flex-wrap: wrap; }
+    details summary { cursor: pointer; list-style: none; }
+    details summary::-webkit-details-marker { display: none; }
 
-    /* Command Palette */
+    .adjust-form { display: inline-flex; gap: 6px; align-items: center; margin-top: 6px; }
+    .adjust-form input {
+      padding: 4px 8px; width: 70px; border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 6px; font-size: 13px; font-family: inherit;
+      background: rgba(255,255,255,0.05); color: var(--text);
+    }
+    .adjust-form input:focus { outline: none; border-color: var(--cyan); }
+    .adjust-form input[name="note"] { width: 120px; }
+
+    .add-form-grid {
+      display: grid; grid-template-columns: 2fr 2fr 1fr 1fr 1fr auto; gap: 8px; align-items: end;
+      padding: 16px 20px;
+    }
+    .add-form-grid label { font-size: 11px; color: var(--text-secondary); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; display: block; }
+    .add-form-grid input {
+      width: 100%; padding: 8px 10px; border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 6px; font-size: 13px; font-family: inherit;
+      background: rgba(255,255,255,0.05); color: var(--text);
+    }
+    .add-form-grid input:focus { outline: none; border-color: var(--cyan); }
+
+    .actions-cell { display: flex; gap: 4px; align-items: center; flex-wrap: wrap; }
+
     .cmd-overlay {
       display: none; position: fixed; inset: 0; z-index: 1000;
       background: rgba(0,0,0,0.6); backdrop-filter: blur(8px);
@@ -341,8 +256,7 @@
       background: rgba(10,22,40,0.95); backdrop-filter: blur(20px);
       border: 1px solid var(--card-border); border-radius: 12px;
       box-shadow: 0 0 60px rgba(0,212,255,0.15);
-      transform: scale(0.95); opacity: 0;
-      transition: all 0.15s ease;
+      transform: scale(0.95); opacity: 0; transition: all 0.15s ease;
     }
     .cmd-overlay.active .cmd-palette { transform: scale(1); opacity: 1; }
     .cmd-input {
@@ -357,14 +271,9 @@
       padding: 10px 12px; border-radius: 8px; cursor: pointer;
       color: var(--text-secondary); font-size: 14px; transition: all 0.1s;
     }
-    .cmd-item:hover, .cmd-item.active {
-      background: rgba(0,212,255,0.08); color: var(--cyan);
-    }
+    .cmd-item:hover, .cmd-item.active { background: rgba(0,212,255,0.08); color: var(--cyan); }
     .cmd-item .cmd-icon { font-size: 18px; width: 24px; text-align: center; }
-    .cmd-hint {
-      padding: 8px 16px; border-top: 1px solid var(--card-border);
-      font-size: 11px; color: var(--text-secondary); text-align: center;
-    }
+    .cmd-hint { padding: 8px 16px; border-top: 1px solid var(--card-border); font-size: 11px; color: var(--text-secondary); text-align: center; }
 
     @media (max-width: 768px) {
       .sidebar { transform: translateX(-100%); }
@@ -372,10 +281,9 @@
       .main { margin-left: 0; }
       .hamburger { display: block; }
       .content { padding: 16px; }
-      .stats-grid { grid-template-columns: repeat(2, 1fr); }
-      .detail-grid { grid-template-columns: 1fr; }
       table { font-size: 13px; }
       th, td { padding: 8px 10px; }
+      .add-form-grid { grid-template-columns: 1fr 1fr; }
     }
 
     .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 99; }
@@ -385,7 +293,7 @@
 <body>
 <div class="overlay" id="overlay" onclick="toggleSidebar()"></div>
 
-<% var active = 'employees'; var stats = { pendingEmergencies: 0 }; %>
+<% var active = 'inventory'; %>
 <nav class="sidebar">
   <div class="sidebar-brand">
     <div class="sidebar-monogram">VV</div>
@@ -401,11 +309,8 @@
     <a href="/admin/employees" class="<%= active === 'employees' ? 'active' : '' %>"><span class="nav-icon">👥</span> Employees</a>
     <a href="/admin/emergency" class="<%= active === 'emergency' ? 'active' : '' %>" style="position:relative">
       <span class="nav-icon">⚠️</span> Emergency
-      <% if (typeof stats !== 'undefined' && stats && stats.pendingEmergencies > 0) { %>
-        <span style="position:absolute;right:12px;top:50%;transform:translateY(-50%);width:8px;height:8px;border-radius:50%;background:#ef4444;box-shadow:0 0 8px rgba(239,68,68,0.6);animation:pulse-red 2s infinite"></span>
-      <% } %>
     </a>
-    <a href="/admin/inventory" class="<%= (typeof navActive !== 'undefined' ? navActive : active) === 'inventory' ? 'active' : '' %>"><span class="nav-icon">📦</span> Inventory</a>
+    <a href="/admin/inventory" class="<%= active === 'inventory' ? 'active' : '' %>"><span class="nav-icon">📦</span> Inventory</a>
     <a href="/admin/revenue" class="<%= active === 'revenue' ? 'active' : '' %>"><span class="nav-icon">💰</span> Revenue</a>
     <a href="/admin/settings" class="<%= active === 'settings' ? 'active' : '' %>"><span class="nav-icon">⚙️</span> Settings</a>
   </div>
@@ -438,10 +343,9 @@
     { icon: '📋', label: 'All Requests', url: '/admin/requests' },
     { icon: '👥', label: 'Employees', url: '/admin/employees' },
     { icon: '⚠️', label: 'Emergency Queue', url: '/admin/emergency' },
+    { icon: '📦', label: 'Inventory', url: '/admin/inventory' },
     { icon: '💰', label: 'Revenue', url: '/admin/revenue' },
     { icon: '⚙️', label: 'Settings', url: '/admin/settings' },
-    { icon: '➕', label: 'New Client', url: '/admin/clients/new' },
-    { icon: '➕', label: 'New Employee', url: '/admin/employees/new' },
   ];
 
   const overlay = document.getElementById('cmdPalette');
@@ -450,21 +354,16 @@
   let activeIdx = 0;
 
   function render(filter) {
-    const filtered = filter
-      ? commands.filter(c => c.label.toLowerCase().includes(filter.toLowerCase()))
-      : commands;
+    const filtered = filter ? commands.filter(c => c.label.toLowerCase().includes(filter.toLowerCase())) : commands;
     activeIdx = 0;
     results.innerHTML = filtered.map((c, i) =>
-      `<div class="cmd-item ${i === 0 ? 'active' : ''}" data-url="${c.url}">
-        <span class="cmd-icon">${c.icon}</span> ${c.label}
-      </div>`
+      `<div class="cmd-item ${i === 0 ? 'active' : ''}" data-url="${c.url}"><span class="cmd-icon">${c.icon}</span> ${c.label}</div>`
     ).join('');
     results.querySelectorAll('.cmd-item').forEach((el, i) => {
       el.addEventListener('click', () => { window.location.href = el.dataset.url; });
       el.addEventListener('mouseenter', () => {
         results.querySelectorAll('.cmd-item').forEach(e => e.classList.remove('active'));
-        el.classList.add('active');
-        activeIdx = i;
+        el.classList.add('active'); activeIdx = i;
       });
     });
   }
@@ -488,52 +387,147 @@
 })();
 </script>
 
-
 <div class="main">
   <div class="topbar">
     <button class="hamburger" onclick="toggleSidebar()">☰</button>
-    <h2>👥 Employees</h2>
-    <a href="/admin/employees/new" class="btn btn-primary btn-sm">➕ New Employee</a>
+    <h2>📦 <%= client.company_name %> — Inventory</h2>
+    <a href="/admin/inventory" class="btn btn-secondary btn-sm">← Back to All</a>
   </div>
   <div class="content">
+
+    <!-- Items Table -->
     <div class="card">
-      <table>
-        <thead>
-          <tr>
-            <th>Name</th>
-            <th>Email</th>
-            <th>Role</th>
-            <th>Status</th>
-            <th>Hourly Rate</th>
-            <th>Assignments</th>
-            <th>Joined</th>
-          </tr>
-        </thead>
-        <tbody>
-          <% employees.forEach(e => { %>
-          <tr style="cursor:pointer" onclick="window.location='/admin/employees/<%= e.id %>'">
-            <td><a href="/admin/employees/<%= e.id %>"><%= e.name %></a></td>
-            <td style="color:var(--text-secondary)"><%= e.email %></td>
-            <td><%= e.role_name %></td>
-            <td>
-              <span class="badge" style="background:<%= e.status === 'active' ? 'rgba(16,185,129,0.2)' : e.status === 'pending' ? 'rgba(245,158,11,0.2)' : 'rgba(100,116,139,0.2)' %>;color:<%= e.status === 'active' ? '#10b981' : e.status === 'pending' ? '#fbbf24' : '#94a3b8' %>"><%= e.status %></span>
-            </td>
-            <td style="color:var(--cyan)">$<%= parseFloat(e.hourly_rate).toFixed(2) %>/hr</td>
-            <td><%= e.assignment_count %></td>
-            <td style="color:var(--text-secondary)"><%= new Date(e.created_at).toLocaleDateString() %></td>
-          </tr>
-          <% }) %>
-          <% if (employees.length === 0) { %>
-          <tr><td colspan="7">
-            <div class="empty-state">
-              <div class="icon">👥</div>
-              <p>No employees yet. Add your first one!</p>
+      <div class="card-header">
+        <h3>Inventory Items (<%= items.length %>)</h3>
+      </div>
+      <% if (items.length === 0) { %>
+        <div class="empty-state">
+          <div class="icon">📦</div>
+          <p>No inventory items yet</p>
+        </div>
+      <% } else { %>
+        <div style="overflow-x:auto">
+          <table>
+            <thead>
+              <tr>
+                <th>Item</th>
+                <th>Description</th>
+                <th>Quantity</th>
+                <th>Unit</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% items.forEach(item => {
+                const qty = parseInt(item.quantity) || 0;
+                const threshold = parseInt(item.low_stock_threshold) || 2;
+                let statusClass, statusLabel;
+                if (qty === 0) { statusClass = 'badge-stock-out'; statusLabel = 'Out of Stock'; }
+                else if (qty <= threshold) { statusClass = 'badge-stock-low'; statusLabel = 'Low Stock'; }
+                else { statusClass = 'badge-stock-ok'; statusLabel = 'In Stock'; }
+              %>
+              <tr>
+                <td style="font-weight:600"><%= item.item_name %></td>
+                <td style="color:var(--text-secondary)"><%= item.description || '—' %></td>
+                <td><span class="qty-big"><%= qty %></span></td>
+                <td><%= item.unit %></td>
+                <td><span class="badge <%= statusClass %>"><%= statusLabel %></span></td>
+                <td>
+                  <div class="actions-cell">
+                    <form method="POST" action="/admin/inventory/<%= client.id %>/items/<%= item.id %>/use" style="display:inline">
+                      <button type="submit" class="btn-use">Use One</button>
+                    </form>
+                    <button class="btn-adjust" onclick="toggleAdjust(this)">Adjust</button>
+                    <button class="btn-del" onclick="deleteItem(<%= client.id %>, <%= item.id %>)">✕</button>
+                  </div>
+                  <div class="adjust-form" style="display:none">
+                    <form method="POST" action="/admin/inventory/<%= client.id %>/items/<%= item.id %>/adjust" style="display:inline-flex;gap:6px;align-items:center">
+                      <input type="number" name="quantity" value="<%= qty %>" min="0" required>
+                      <input type="text" name="note" placeholder="Note...">
+                      <button type="submit" class="btn-use">Save</button>
+                    </form>
+                  </div>
+                </td>
+              </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        </div>
+      <% } %>
+      <!-- Add item form -->
+      <details>
+        <summary style="padding:12px 20px;font-size:13px;color:var(--cyan);cursor:pointer;font-weight:600">+ Add Item</summary>
+        <form method="POST" action="/admin/inventory/<%= client.id %>/items">
+          <div class="add-form-grid">
+            <div>
+              <label>Item Name</label>
+              <input type="text" name="item_name" placeholder="e.g. Router" required>
             </div>
-          </td></tr>
-          <% } %>
-        </tbody>
-      </table>
+            <div>
+              <label>Description</label>
+              <input type="text" name="description" placeholder="Optional">
+            </div>
+            <div>
+              <label>Quantity</label>
+              <input type="number" name="quantity" value="0" min="0" required>
+            </div>
+            <div>
+              <label>Unit</label>
+              <input type="text" name="unit" value="units" required>
+            </div>
+            <div>
+              <label>Low Alert</label>
+              <input type="number" name="low_stock_threshold" value="2" min="0" required>
+            </div>
+            <div style="padding-bottom:1px">
+              <button type="submit" class="btn btn-primary btn-sm">Add</button>
+            </div>
+          </div>
+        </form>
+      </details>
     </div>
+
+    <!-- Activity Log -->
+    <div class="card">
+      <div class="card-header">
+        <h3>📝 Recent Activity</h3>
+        <span style="color:var(--text-secondary);font-size:13px">Last 20 entries</span>
+      </div>
+      <% if (logs.length === 0) { %>
+        <div style="padding:24px;text-align:center;color:var(--text-secondary)">No activity yet</div>
+      <% } else { %>
+        <div style="overflow-x:auto">
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Item</th>
+                <th>Change</th>
+                <th>After</th>
+                <th>Note</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% logs.forEach(log => { %>
+              <tr>
+                <td style="color:var(--text-secondary);font-size:13px"><%= new Date(log.created_at).toLocaleString() %></td>
+                <td style="font-weight:500"><%= log.item_name %></td>
+                <td>
+                  <span class="badge badge-<%= log.change_type %>">
+                    <%= log.change_type %> (<%= log.quantity_change > 0 ? '+' : '' %><%= log.quantity_change %>)
+                  </span>
+                </td>
+                <td style="font-weight:700"><%= log.quantity_after %></td>
+                <td style="color:var(--text-secondary)"><%= log.note || '—' %></td>
+              </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        </div>
+      <% } %>
+    </div>
+
   </div>
 </div>
 
@@ -543,36 +537,16 @@
     document.getElementById('overlay').classList.toggle('active');
   }
 
-  async function deleteResource(url, redirectTo) {
-    if (!confirm('Are you sure? This cannot be undone.')) return;
-    await fetch(url, { method: 'DELETE' });
-    window.location.href = redirectTo;
+  function toggleAdjust(btn) {
+    const form = btn.closest('td').querySelector('.adjust-form');
+    form.style.display = form.style.display === 'none' ? 'block' : 'none';
   }
 
-  // CountUp animation
-  function countUp(el, target, duration) {
-    if (!el) return;
-    const start = 0;
-    const startTime = performance.now();
-    const isFloat = String(target).includes('.');
-    function update(now) {
-      const elapsed = now - startTime;
-      const progress = Math.min(elapsed / duration, 1);
-      const eased = 1 - Math.pow(1 - progress, 3);
-      const current = start + (target - start) * eased;
-      el.textContent = isFloat ? current.toFixed(1) : Math.round(current);
-      if (progress < 1) requestAnimationFrame(update);
-    }
-    requestAnimationFrame(update);
+  async function deleteItem(clientId, itemId) {
+    if (!confirm('Delete this inventory item? This cannot be undone.')) return;
+    await fetch(`/admin/inventory/${clientId}/items/${itemId}`, { method: 'DELETE' });
+    window.location.reload();
   }
-
-  document.addEventListener('DOMContentLoaded', () => {
-    document.querySelectorAll('[data-countup]').forEach(el => {
-      const target = parseFloat(el.getAttribute('data-countup'));
-      if (!isNaN(target)) countUp(el, target, 600);
-    });
-  });
 </script>
 </body>
 </html>
-

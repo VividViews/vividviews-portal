@@ -194,23 +194,14 @@
     tr:hover td { background: var(--hover-row); }
     td a { color: var(--cyan); text-decoration: none; font-weight: 500; }
     td a:hover { text-decoration: underline; text-shadow: 0 0 8px rgba(0,212,255,0.3); }
-    tr[style*="cursor"] { transition: all 0.2s; }
-    tr[style*="cursor"]:hover { box-shadow: inset 0 0 30px rgba(0,212,255,0.03); }
 
     /* Badges */
     .badge { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; }
-    .badge-submitted { background: rgba(100,116,139,0.2); color: #94a3b8; box-shadow: 0 0 8px rgba(100,116,139,0.1); }
-    .badge-in_review { background: rgba(245,158,11,0.2); color: #fbbf24; box-shadow: 0 0 8px rgba(245,158,11,0.15); }
-    .badge-in_progress { background: rgba(0,212,255,0.15); color: #00d4ff; box-shadow: 0 0 8px rgba(0,212,255,0.15); }
-    .badge-complete { background: rgba(16,185,129,0.2); color: #10b981; box-shadow: 0 0 8px rgba(16,185,129,0.15); }
-    .badge-low { background: rgba(16,185,129,0.2); color: #10b981; box-shadow: 0 0 8px rgba(16,185,129,0.1); }
-    .badge-medium { background: rgba(245,158,11,0.2); color: #fbbf24; box-shadow: 0 0 8px rgba(245,158,11,0.1); }
-    .badge-high { background: rgba(249,115,22,0.2); color: #fb923c; box-shadow: 0 0 8px rgba(249,115,22,0.15); }
-    .badge-urgent { background: rgba(239,68,68,0.2); color: #ef4444; box-shadow: 0 0 8px rgba(239,68,68,0.2); animation: pulse-red 2s infinite; }
-    .badge-active { background: rgba(0,212,255,0.15); color: #00d4ff; }
-    .badge-completed { background: rgba(16,185,129,0.2); color: #10b981; }
-    .badge-cancelled { background: rgba(239,68,68,0.2); color: #ef4444; }
+    .badge-stock-ok { background: rgba(16,185,129,0.2); color: #10b981; box-shadow: 0 0 8px rgba(16,185,129,0.2); }
+    .badge-stock-low { background: rgba(245,158,11,0.2); color: #fbbf24; box-shadow: 0 0 8px rgba(245,158,11,0.2); animation: pulse-amber 2s infinite; }
+    .badge-stock-out { background: rgba(239,68,68,0.2); color: #ef4444; box-shadow: 0 0 8px rgba(239,68,68,0.3); animation: pulse-red 2s infinite; }
 
+    @keyframes pulse-amber { 0%,100%{box-shadow:0 0 8px rgba(245,158,11,0.2);} 50%{box-shadow:0 0 16px rgba(245,158,11,0.5);} }
     @keyframes pulse-red { 0%, 100% { box-shadow: 0 0 8px rgba(239,68,68,0.2); } 50% { box-shadow: 0 0 16px rgba(239,68,68,0.4); } }
 
     /* Buttons */
@@ -242,6 +233,30 @@
 
     .btn-sm { padding: 6px 12px; font-size: 13px; }
 
+    .btn-use {
+      background: rgba(0,212,255,0.15); color: #00d4ff;
+      border: 1px solid rgba(0,212,255,0.3);
+      padding: 4px 10px; font-size: 12px; border-radius: 6px;
+      cursor: pointer; font-family: inherit; font-weight: 600; transition: all 0.2s;
+    }
+    .btn-use:hover { background: rgba(0,212,255,0.25); }
+
+    .btn-adjust {
+      background: rgba(100,116,139,0.15); color: #94a3b8;
+      border: 1px solid rgba(100,116,139,0.3);
+      padding: 4px 10px; font-size: 12px; border-radius: 6px;
+      cursor: pointer; font-family: inherit; font-weight: 600; transition: all 0.2s;
+    }
+    .btn-adjust:hover { background: rgba(100,116,139,0.25); }
+
+    .btn-del {
+      background: rgba(239,68,68,0.15); color: #ef4444;
+      border: 1px solid rgba(239,68,68,0.3);
+      padding: 4px 10px; font-size: 12px; border-radius: 6px;
+      cursor: pointer; font-family: inherit; font-weight: 600; transition: all 0.2s;
+    }
+    .btn-del:hover { background: rgba(239,68,68,0.25); }
+
     /* Forms */
     .form-group { margin-bottom: 20px; }
     .form-group label {
@@ -258,7 +273,6 @@
       outline: none; border-color: var(--cyan);
       box-shadow: 0 0 12px rgba(0,212,255,0.15);
     }
-    textarea.form-control { resize: vertical; min-height: 100px; }
     select.form-control {
       appearance: none;
       background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2364748b' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
@@ -266,68 +280,39 @@
     }
     select.form-control option { background: #0a1628; color: var(--text); }
 
-    /* Alert */
-    .alert { padding: 12px 16px; border-radius: 8px; margin-bottom: 20px; font-size: 14px; }
-    .alert-error { background: rgba(239,68,68,0.15); color: #ef4444; border: 1px solid rgba(239,68,68,0.3); }
-
-    /* Filter bar */
-    .filter-bar {
-      display: flex; gap: 12px; flex-wrap: wrap;
-      padding: 16px 20px; background: rgba(255,255,255,0.02);
-      border-bottom: 1px solid var(--card-border);
-    }
-    .filter-bar select {
-      padding: 8px 32px 8px 12px; border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 8px; font-size: 13px; font-family: inherit;
-      background: rgba(255,255,255,0.05); color: var(--text);
-      appearance: none;
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2364748b' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
-      background-repeat: no-repeat; background-position: right 10px center;
-    }
-    .filter-bar select option { background: #0a1628; color: var(--text); }
-
-    /* Detail layout */
-    .detail-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 24px; }
-    .detail-section {
-      background: var(--card-bg); backdrop-filter: blur(20px);
-      border-radius: 12px; border: 1px solid var(--card-border);
-      padding: 24px; margin-bottom: 24px; box-shadow: var(--glow);
-    }
-    .detail-section h3 { font-size: 16px; font-weight: 600; color: var(--text); margin-bottom: 16px; }
-    .detail-row { display: flex; padding: 8px 0; border-bottom: 1px solid var(--row-sep); }
-    .detail-row:last-child { border-bottom: none; }
-    .detail-label { width: 140px; font-size: 13px; font-weight: 600; color: var(--text-secondary); flex-shrink: 0; }
-    .detail-value { font-size: 14px; color: var(--text); }
-
-    .inline-form { display: flex; gap: 8px; align-items: center; }
-    .inline-form input {
-      flex: 1; padding: 8px 12px; border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 8px; font-size: 14px; font-family: inherit;
-      background: rgba(255,255,255,0.05); color: var(--text);
-    }
-    .inline-form input:focus { outline: none; border-color: var(--cyan); box-shadow: 0 0 8px rgba(0,212,255,0.1); }
-
-    .tag {
-      display: inline-flex; align-items: center; gap: 6px;
-      padding: 4px 12px; background: rgba(0,212,255,0.1); color: var(--cyan);
-      border-radius: 999px; font-size: 13px; font-weight: 500; margin: 4px 4px 4px 0;
-    }
-    .tag button { background: none; border: none; color: var(--cyan); cursor: pointer; font-size: 16px; line-height: 1; padding: 0; opacity: 0.6; }
-    .tag button:hover { opacity: 1; }
-
     .empty-state { text-align: center; padding: 48px 20px; color: var(--text-secondary); }
     .empty-state .icon { font-size: 48px; margin-bottom: 12px; }
     .empty-state p { font-size: 16px; }
 
-    .description-text { white-space: pre-wrap; line-height: 1.6; color: var(--text); }
-    .file-list { list-style: none; }
-    .file-list li { padding: 8px 0; border-bottom: 1px solid var(--row-sep); }
-    .file-list li:last-child { border-bottom: none; }
-    .file-list a { color: var(--cyan); text-decoration: none; font-size: 14px; }
-    .file-list a:hover { text-decoration: underline; }
+    .qty-big { font-size: 22px; font-weight: 700; }
 
-    /* Quick Actions */
-    .quick-actions { display: flex; gap: 12px; margin-bottom: 32px; flex-wrap: wrap; }
+    details summary { cursor: pointer; list-style: none; }
+    details summary::-webkit-details-marker { display: none; }
+
+    .adjust-form {
+      display: inline-flex; gap: 6px; align-items: center; margin-top: 6px;
+    }
+    .adjust-form input {
+      padding: 4px 8px; width: 70px; border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 6px; font-size: 13px; font-family: inherit;
+      background: rgba(255,255,255,0.05); color: var(--text);
+    }
+    .adjust-form input:focus { outline: none; border-color: var(--cyan); }
+    .adjust-form input[name="note"] { width: 120px; }
+
+    .add-form-grid {
+      display: grid; grid-template-columns: 2fr 2fr 1fr 1fr 1fr auto; gap: 8px; align-items: end;
+      padding: 16px 20px;
+    }
+    .add-form-grid label { font-size: 11px; color: var(--text-secondary); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; display: block; }
+    .add-form-grid input, .add-form-grid select {
+      width: 100%; padding: 8px 10px; border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 6px; font-size: 13px; font-family: inherit;
+      background: rgba(255,255,255,0.05); color: var(--text);
+    }
+    .add-form-grid input:focus, .add-form-grid select:focus { outline: none; border-color: var(--cyan); }
+
+    .actions-cell { display: flex; gap: 4px; align-items: center; flex-wrap: wrap; }
 
     /* Command Palette */
     .cmd-overlay {
@@ -373,9 +358,9 @@
       .hamburger { display: block; }
       .content { padding: 16px; }
       .stats-grid { grid-template-columns: repeat(2, 1fr); }
-      .detail-grid { grid-template-columns: 1fr; }
       table { font-size: 13px; }
       th, td { padding: 8px 10px; }
+      .add-form-grid { grid-template-columns: 1fr 1fr; }
     }
 
     .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 99; }
@@ -385,7 +370,7 @@
 <body>
 <div class="overlay" id="overlay" onclick="toggleSidebar()"></div>
 
-<% var navActive = 'emergency'; var stats = { pendingEmergencies: pending.length }; %>
+<% var active = 'inventory'; %>
 <nav class="sidebar">
   <div class="sidebar-brand">
     <div class="sidebar-monogram">VV</div>
@@ -395,19 +380,16 @@
     </div>
   </div>
   <div class="sidebar-nav">
-    <a href="/admin" class="<%= navActive === 'dashboard' ? 'active' : '' %>"><span class="nav-icon">📊</span> Dashboard</a>
-    <a href="/admin/clients" class="<%= navActive === 'clients' ? 'active' : '' %>"><span class="nav-icon">🏢</span> Clients</a>
-    <a href="/admin/requests" class="<%= navActive === 'requests' ? 'active' : '' %>"><span class="nav-icon">📋</span> Requests</a>
-    <a href="/admin/employees" class="<%= navActive === 'employees' ? 'active' : '' %>"><span class="nav-icon">👥</span> Employees</a>
-    <a href="/admin/emergency" class="<%= navActive === 'emergency' ? 'active' : '' %>" style="position:relative">
+    <a href="/admin" class="<%= active === 'dashboard' ? 'active' : '' %>"><span class="nav-icon">📊</span> Dashboard</a>
+    <a href="/admin/clients" class="<%= active === 'clients' ? 'active' : '' %>"><span class="nav-icon">🏢</span> Clients</a>
+    <a href="/admin/requests" class="<%= active === 'requests' ? 'active' : '' %>"><span class="nav-icon">📋</span> Requests</a>
+    <a href="/admin/employees" class="<%= active === 'employees' ? 'active' : '' %>"><span class="nav-icon">👥</span> Employees</a>
+    <a href="/admin/emergency" class="<%= active === 'emergency' ? 'active' : '' %>" style="position:relative">
       <span class="nav-icon">⚠️</span> Emergency
-      <% if (typeof stats !== 'undefined' && stats && stats.pendingEmergencies > 0) { %>
-        <span style="position:absolute;right:12px;top:50%;transform:translateY(-50%);width:8px;height:8px;border-radius:50%;background:#ef4444;box-shadow:0 0 8px rgba(239,68,68,0.6);animation:pulse-red 2s infinite"></span>
-      <% } %>
     </a>
-    <a href="/admin/inventory" class="<%= (typeof navActive !== 'undefined' ? navActive : active) === 'inventory' ? 'active' : '' %>"><span class="nav-icon">📦</span> Inventory</a>
-    <a href="/admin/revenue" class="<%= navActive === 'revenue' ? 'active' : '' %>"><span class="nav-icon">💰</span> Revenue</a>
-    <a href="/admin/settings" class="<%= navActive === 'settings' ? 'active' : '' %>"><span class="nav-icon">⚙️</span> Settings</a>
+    <a href="/admin/inventory" class="<%= active === 'inventory' ? 'active' : '' %>"><span class="nav-icon">📦</span> Inventory</a>
+    <a href="/admin/revenue" class="<%= active === 'revenue' ? 'active' : '' %>"><span class="nav-icon">💰</span> Revenue</a>
+    <a href="/admin/settings" class="<%= active === 'settings' ? 'active' : '' %>"><span class="nav-icon">⚙️</span> Settings</a>
   </div>
   <div class="sidebar-footer">
     <div class="user-avatar"><%= user.name ? user.name.charAt(0).toUpperCase() : 'A' %></div>
@@ -438,10 +420,9 @@
     { icon: '📋', label: 'All Requests', url: '/admin/requests' },
     { icon: '👥', label: 'Employees', url: '/admin/employees' },
     { icon: '⚠️', label: 'Emergency Queue', url: '/admin/emergency' },
+    { icon: '📦', label: 'Inventory', url: '/admin/inventory' },
     { icon: '💰', label: 'Revenue', url: '/admin/revenue' },
     { icon: '⚙️', label: 'Settings', url: '/admin/settings' },
-    { icon: '➕', label: 'New Client', url: '/admin/clients/new' },
-    { icon: '➕', label: 'New Employee', url: '/admin/employees/new' },
   ];
 
   const overlay = document.getElementById('cmdPalette');
@@ -488,118 +469,187 @@
 })();
 </script>
 
-
 <div class="main">
   <div class="topbar">
     <button class="hamburger" onclick="toggleSidebar()">☰</button>
-    <h2 style="display:flex;align-items:center;gap:12px">
-      ⚠️ Emergency Queue
-      <% if (pending.length > 0) { %>
-        <span class="badge badge-urgent"><%= pending.length %> pending</span>
-      <% } %>
-    </h2>
+    <h2>📦 Inventory Management</h2>
     <div></div>
   </div>
   <div class="content">
-    <style>
-      .emergency-card { border: 1px solid rgba(239,68,68,0.3); box-shadow: 0 0 20px rgba(239,68,68,0.08); }
-      .emergency-card::before { background: linear-gradient(135deg, #ef4444, #f97316) !important; }
-    </style>
+    <p style="color:var(--text-secondary);margin-bottom:24px">Track hardware and supplies per client</p>
 
-    <!-- Pending Emergencies -->
-    <% if (pending.length > 0) { %>
-    <div class="card emergency-card" style="margin-bottom:24px">
-      <div class="card-header" style="background:rgba(239,68,68,0.06)">
-        <h3 style="color:#ef4444">🚨 Pending Approval</h3>
+    <!-- Stats -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <span class="stat-icon">📦</span>
+        <div class="stat-label">Total Items</div>
+        <div class="stat-value" data-countup="<%= stats.totalItems %>">0</div>
       </div>
-      <table>
-        <thead>
-          <tr><th>Client</th><th>Site</th><th>Request</th><th>Submitted</th><th>Actions</th></tr>
-        </thead>
-        <tbody>
-          <% pending.forEach(e => { %>
-          <tr>
-            <td><a href="/admin/clients/<%= e.client_id %>"><%= e.company_name %></a></td>
-            <td><%= e.site_name || '—' %></td>
-            <td><a href="/admin/requests/<%= e.request_id %>">#<%= e.request_id %></a> — <%= e.service_type_name %></td>
-            <td style="color:var(--text-secondary)"><%= new Date(e.created_at).toLocaleString() %></td>
-            <td>
-              <form method="POST" action="/admin/emergency/<%= e.id %>/approve" style="display:flex;gap:8px;align-items:center">
-                <select name="dispatched_employee_id" class="form-control" style="width:160px;padding:6px 10px;font-size:13px">
-                  <option value="">— Employee —</option>
-                  <% employees.forEach(emp => { %>
-                    <option value="<%= emp.id %>"><%= emp.name %> (<%= emp.role_name %>)</option>
-                  <% }) %>
-                </select>
-                <input type="number" name="base_fee" class="form-control" style="width:100px;padding:6px 10px;font-size:13px" placeholder="Base fee $" step="0.01" min="0" value="150">
-                <button type="submit" class="btn btn-sm" style="background:rgba(16,185,129,0.15);color:#10b981;border:1px solid rgba(16,185,129,0.3);white-space:nowrap">✅ Approve</button>
-              </form>
-            </td>
-          </tr>
-          <% }) %>
-        </tbody>
-      </table>
+      <div class="stat-card">
+        <span class="stat-icon">⚠️</span>
+        <div class="stat-label">Low Stock</div>
+        <div class="stat-value" data-countup="<%= stats.lowStock %>" style="color:#fbbf24">0</div>
+      </div>
+      <div class="stat-card">
+        <span class="stat-icon">🚫</span>
+        <div class="stat-label">Out of Stock</div>
+        <div class="stat-value" data-countup="<%= stats.outOfStock %>" style="color:#ef4444">0</div>
+      </div>
+      <div class="stat-card">
+        <span class="stat-icon">🏢</span>
+        <div class="stat-label">Clients w/ Inventory</div>
+        <div class="stat-value" data-countup="<%= stats.clientCount %>">0</div>
+      </div>
     </div>
+
+    <!-- Add Item to Any Client -->
+    <div class="card" style="margin-bottom:32px">
+      <details>
+        <summary class="card-header" style="cursor:pointer">
+          <h3>➕ Add Item to Client</h3>
+        </summary>
+        <form method="POST" action="" id="addItemForm">
+          <div class="add-form-grid">
+            <div>
+              <label>Client</label>
+              <select class="form-control" id="addClientSelect" required>
+                <option value="">Select client...</option>
+                <% clients.forEach(c => { %>
+                  <option value="<%= c.id %>"><%= c.company_name %></option>
+                <% }) %>
+              </select>
+            </div>
+            <div>
+              <label>Item Name</label>
+              <input type="text" name="item_name" placeholder="e.g. HDMI Cable" required>
+            </div>
+            <div>
+              <label>Quantity</label>
+              <input type="number" name="quantity" value="0" min="0" required>
+            </div>
+            <div>
+              <label>Unit</label>
+              <input type="text" name="unit" value="units" required>
+            </div>
+            <div>
+              <label>Low Alert</label>
+              <input type="number" name="low_stock_threshold" value="2" min="0" required>
+            </div>
+            <div style="padding-bottom:1px">
+              <button type="submit" class="btn btn-primary btn-sm">Add</button>
+            </div>
+          </div>
+          <div style="padding:0 20px 12px">
+            <label style="font-size:11px;color:var(--text-secondary);font-weight:600;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;display:block">Description</label>
+            <input type="text" name="description" placeholder="Optional description..." style="width:100%;padding:8px 10px;border:1px solid rgba(255,255,255,0.1);border-radius:6px;font-size:13px;font-family:inherit;background:rgba(255,255,255,0.05);color:var(--text)">
+          </div>
+        </form>
+      </details>
+    </div>
+
+    <script>
+      document.getElementById('addClientSelect').addEventListener('change', function() {
+        const form = document.getElementById('addItemForm');
+        form.action = '/admin/inventory/' + this.value + '/items';
+      });
+    </script>
+
+    <!-- Per-Client Inventory -->
+    <% if (clientGroups.length === 0) { %>
+      <div class="empty-state">
+        <div class="icon">📦</div>
+        <p>No inventory items yet</p>
+        <p style="font-size:14px;margin-top:8px">Add items using the form above</p>
+      </div>
+    <% } else { %>
+      <% clientGroups.forEach(group => { %>
+        <div class="card">
+          <div class="card-header">
+            <h3><a href="/admin/inventory/<%= group.client_id %>" style="color:var(--cyan);text-decoration:none"><%= group.company_name %></a></h3>
+            <span style="color:var(--text-secondary);font-size:13px"><%= group.items.length %> item<%= group.items.length !== 1 ? 's' : '' %></span>
+          </div>
+          <div style="overflow-x:auto">
+            <table>
+              <thead>
+                <tr>
+                  <th>Item</th>
+                  <th>Description</th>
+                  <th>Quantity</th>
+                  <th>Unit</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% group.items.forEach(item => {
+                  const qty = parseInt(item.quantity) || 0;
+                  const threshold = parseInt(item.low_stock_threshold) || 2;
+                  let statusClass, statusLabel;
+                  if (qty === 0) { statusClass = 'badge-stock-out'; statusLabel = 'Out of Stock'; }
+                  else if (qty <= threshold) { statusClass = 'badge-stock-low'; statusLabel = 'Low Stock'; }
+                  else { statusClass = 'badge-stock-ok'; statusLabel = 'In Stock'; }
+                %>
+                <tr>
+                  <td style="font-weight:600"><%= item.item_name %></td>
+                  <td style="color:var(--text-secondary)"><%= item.description || '—' %></td>
+                  <td><span class="qty-big"><%= qty %></span></td>
+                  <td><%= item.unit %></td>
+                  <td><span class="badge <%= statusClass %>"><%= statusLabel %></span></td>
+                  <td>
+                    <div class="actions-cell">
+                      <form method="POST" action="/admin/inventory/<%= group.client_id %>/items/<%= item.id %>/use" style="display:inline">
+                        <button type="submit" class="btn-use" title="Use one">Use One</button>
+                      </form>
+                      <button class="btn-adjust" onclick="toggleAdjust(this)" title="Adjust quantity">Adjust</button>
+                      <button class="btn-del" onclick="deleteItem(<%= group.client_id %>, <%= item.id %>)" title="Delete">✕</button>
+                    </div>
+                    <div class="adjust-form" style="display:none">
+                      <form method="POST" action="/admin/inventory/<%= group.client_id %>/items/<%= item.id %>/adjust" style="display:inline-flex;gap:6px;align-items:center">
+                        <input type="number" name="quantity" value="<%= qty %>" min="0" required>
+                        <input type="text" name="note" placeholder="Note...">
+                        <button type="submit" class="btn-use">Save</button>
+                      </form>
+                    </div>
+                  </td>
+                </tr>
+                <% }) %>
+              </tbody>
+            </table>
+          </div>
+          <!-- Add item to this client -->
+          <details>
+            <summary style="padding:12px 20px;font-size:13px;color:var(--cyan);cursor:pointer;font-weight:600">+ Add Item</summary>
+            <form method="POST" action="/admin/inventory/<%= group.client_id %>/items">
+              <div class="add-form-grid">
+                <div>
+                  <label>Item Name</label>
+                  <input type="text" name="item_name" placeholder="e.g. Router" required>
+                </div>
+                <div>
+                  <label>Description</label>
+                  <input type="text" name="description" placeholder="Optional">
+                </div>
+                <div>
+                  <label>Quantity</label>
+                  <input type="number" name="quantity" value="0" min="0" required>
+                </div>
+                <div>
+                  <label>Unit</label>
+                  <input type="text" name="unit" value="units" required>
+                </div>
+                <div>
+                  <label>Low Alert</label>
+                  <input type="number" name="low_stock_threshold" value="2" min="0" required>
+                </div>
+                <div style="padding-bottom:1px">
+                  <button type="submit" class="btn btn-primary btn-sm">Add</button>
+                </div>
+              </div>
+            </form>
+          </details>
+        </div>
+      <% }) %>
     <% } %>
-
-    <!-- Active Emergencies -->
-    <div class="card" style="margin-bottom:24px">
-      <div class="card-header">
-        <h3>🔥 Active / In Progress</h3>
-      </div>
-      <% if (active.length > 0) { %>
-      <table>
-        <thead>
-          <tr><th>Client</th><th>Site</th><th>Request</th><th>Employee</th><th>Status</th><th>Actions</th></tr>
-        </thead>
-        <tbody>
-          <% active.forEach(e => { %>
-          <tr>
-            <td><%= e.company_name %></td>
-            <td><%= e.site_name || '—' %></td>
-            <td><a href="/admin/requests/<%= e.request_id %>">#<%= e.request_id %></a></td>
-            <td><%= e.employee_name || '—' %></td>
-            <td><span class="badge badge-<%= e.status === 'dispatched' ? 'in_progress' : 'in_review' %>"><%= e.status %></span></td>
-            <td>
-              <form method="POST" action="/admin/emergency/<%= e.id %>/complete" style="display:inline">
-                <button type="submit" class="btn btn-sm" style="background:rgba(16,185,129,0.15);color:#10b981;border:1px solid rgba(16,185,129,0.3)">🏁 Complete</button>
-              </form>
-            </td>
-          </tr>
-          <% }) %>
-        </tbody>
-      </table>
-      <% } else { %>
-        <div class="empty-state" style="padding:32px"><p>No active emergencies</p></div>
-      <% } %>
-    </div>
-
-    <!-- Completed -->
-    <div class="card">
-      <div class="card-header">
-        <h3>✅ Completed</h3>
-      </div>
-      <% if (completed.length > 0) { %>
-      <table>
-        <thead>
-          <tr><th>Client</th><th>Site</th><th>Request</th><th>Employee</th><th>Completed</th></tr>
-        </thead>
-        <tbody>
-          <% completed.forEach(e => { %>
-          <tr>
-            <td><%= e.company_name %></td>
-            <td><%= e.site_name || '—' %></td>
-            <td><a href="/admin/requests/<%= e.request_id %>">#<%= e.request_id %></a></td>
-            <td><%= e.employee_name || '—' %></td>
-            <td style="color:var(--text-secondary)"><%= new Date(e.created_at).toLocaleString() %></td>
-          </tr>
-          <% }) %>
-        </tbody>
-      </table>
-      <% } else { %>
-        <div class="empty-state" style="padding:32px"><p>No completed emergencies</p></div>
-      <% } %>
-    </div>
   </div>
 </div>
 
@@ -609,10 +659,15 @@
     document.getElementById('overlay').classList.toggle('active');
   }
 
-  async function deleteResource(url, redirectTo) {
-    if (!confirm('Are you sure? This cannot be undone.')) return;
-    await fetch(url, { method: 'DELETE' });
-    window.location.href = redirectTo;
+  function toggleAdjust(btn) {
+    const form = btn.closest('td').querySelector('.adjust-form');
+    form.style.display = form.style.display === 'none' ? 'block' : 'none';
+  }
+
+  async function deleteItem(clientId, itemId) {
+    if (!confirm('Delete this inventory item? This cannot be undone.')) return;
+    await fetch(`/admin/inventory/${clientId}/items/${itemId}`, { method: 'DELETE' });
+    window.location.reload();
   }
 
   // CountUp animation
@@ -620,13 +675,12 @@
     if (!el) return;
     const start = 0;
     const startTime = performance.now();
-    const isFloat = String(target).includes('.');
     function update(now) {
       const elapsed = now - startTime;
       const progress = Math.min(elapsed / duration, 1);
       const eased = 1 - Math.pow(1 - progress, 3);
       const current = start + (target - start) * eased;
-      el.textContent = isFloat ? current.toFixed(1) : Math.round(current);
+      el.textContent = Math.round(current);
       if (progress < 1) requestAnimationFrame(update);
     }
     requestAnimationFrame(update);
@@ -641,4 +695,3 @@
 </script>
 </body>
 </html>
-

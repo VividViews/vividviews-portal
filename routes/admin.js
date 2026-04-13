@@ -918,6 +918,119 @@ router.post('/emergency/:eid/complete', async (req, res) => {
   res.redirect('/admin/emergency');
 });
 
+// ============ Inventory Management ============
+
+router.get('/inventory', async (req, res) => {
+  const items = await db.query(`
+    SELECT ii.*, c.company_name
+    FROM inventory_items ii
+    JOIN clients c ON ii.client_id = c.id
+    ORDER BY c.company_name, ii.item_name
+  `);
+  const clients = await db.query('SELECT id, company_name FROM clients ORDER BY company_name');
+
+  // Group items by client
+  const clientMap = {};
+  for (const item of items) {
+    if (!clientMap[item.client_id]) {
+      clientMap[item.client_id] = { company_name: item.company_name, client_id: item.client_id, items: [] };
+    }
+    clientMap[item.client_id].items.push(item);
+  }
+  const clientGroups = Object.values(clientMap);
+
+  const totalItems = items.length;
+  const lowStock = items.filter(i => i.quantity > 0 && i.quantity <= i.low_stock_threshold).length;
+  const outOfStock = items.filter(i => i.quantity === 0 || i.quantity === '0').length;
+  const clientCount = clientGroups.length;
+
+  res.render('admin/inventory', {
+    title: 'Inventory',
+    user: req.session.user,
+    clientGroups,
+    clients,
+    stats: { totalItems, lowStock, outOfStock, clientCount }
+  });
+});
+
+router.get('/inventory/:client_id', async (req, res) => {
+  const client = await db.get('SELECT * FROM clients WHERE id = $1', [req.params.client_id]);
+  if (!client) return res.redirect('/admin/inventory');
+
+  const items = await db.query(
+    'SELECT * FROM inventory_items WHERE client_id = $1 ORDER BY item_name',
+    [req.params.client_id]
+  );
+
+  const logs = await db.query(`
+    SELECT il.*, ii.item_name
+    FROM inventory_logs il
+    JOIN inventory_items ii ON il.item_id = ii.id
+    WHERE ii.client_id = $1
+    ORDER BY il.created_at DESC
+    LIMIT 20
+  `, [req.params.client_id]);
+
+  res.render('admin/client-inventory', {
+    title: `${client.company_name} Inventory`,
+    user: req.session.user,
+    client,
+    items,
+    logs
+  });
+});
+
+router.post('/inventory/:client_id/items', async (req, res) => {
+  const { item_name, description, quantity, low_stock_threshold, unit } = req.body;
+  const qty = parseInt(quantity) || 0;
+  const threshold = parseInt(low_stock_threshold) || 2;
+  const result = await db.get(
+    'INSERT INTO inventory_items (client_id, item_name, description, quantity, low_stock_threshold, unit) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id',
+    [req.params.client_id, item_name, description || '', qty, threshold, unit || 'units']
+  );
+  if (qty > 0) {
+    await db.run(
+      'INSERT INTO inventory_logs (item_id, change_type, quantity_change, quantity_after, note) VALUES ($1, $2, $3, $4, $5)',
+      [result.id, 'add', qty, qty, 'Initial stock']
+    );
+  }
+  const referer = req.get('Referer') || '/admin/inventory';
+  res.redirect(referer);
+});
+
+router.post('/inventory/:client_id/items/:id/use', async (req, res) => {
+  const item = await db.get('SELECT * FROM inventory_items WHERE id = $1 AND client_id = $2', [req.params.id, req.params.client_id]);
+  if (!item) return res.redirect('/admin/inventory');
+  const newQty = Math.max(0, (parseInt(item.quantity) || 0) - 1);
+  await db.run('UPDATE inventory_items SET quantity = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2', [newQty, req.params.id]);
+  await db.run(
+    'INSERT INTO inventory_logs (item_id, change_type, quantity_change, quantity_after, note) VALUES ($1, $2, $3, $4, $5)',
+    [req.params.id, 'use', -1, newQty, '']
+  );
+  const referer = req.get('Referer') || '/admin/inventory';
+  res.redirect(referer);
+});
+
+router.post('/inventory/:client_id/items/:id/adjust', async (req, res) => {
+  const { quantity, note } = req.body;
+  const item = await db.get('SELECT * FROM inventory_items WHERE id = $1 AND client_id = $2', [req.params.id, req.params.client_id]);
+  if (!item) return res.redirect('/admin/inventory');
+  const newQty = parseInt(quantity) || 0;
+  const diff = newQty - (parseInt(item.quantity) || 0);
+  await db.run('UPDATE inventory_items SET quantity = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2', [newQty, req.params.id]);
+  await db.run(
+    'INSERT INTO inventory_logs (item_id, change_type, quantity_change, quantity_after, note) VALUES ($1, $2, $3, $4, $5)',
+    [req.params.id, 'adjust', diff, newQty, note || '']
+  );
+  const referer = req.get('Referer') || '/admin/inventory';
+  res.redirect(referer);
+});
+
+router.delete('/inventory/:client_id/items/:id', async (req, res) => {
+  await db.run('DELETE FROM inventory_items WHERE id = $1 AND client_id = $2', [req.params.id, req.params.client_id]);
+  res.json({ ok: true });
+});
+
 // ============ Settings ============
 
 router.get('/settings', async (req, res) => {
