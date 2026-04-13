@@ -5,64 +5,123 @@
   <div class="topbar">
     <button class="hamburger" onclick="toggleSidebar()">☰</button>
     <h2>Dashboard</h2>
-    <div></div>
+    <div style="font-size:12px;color:var(--text-secondary)">⌘K to search</div>
   </div>
   <div class="content">
+    <!-- Quick Actions -->
+    <div class="quick-actions">
+      <a href="/admin/clients/new" class="btn btn-primary btn-sm">➕ New Client</a>
+      <a href="/admin/requests" class="btn btn-secondary btn-sm">📋 All Requests</a>
+      <a href="/admin/revenue" class="btn btn-secondary btn-sm">💰 View Revenue</a>
+    </div>
+
     <div class="stats-grid">
       <div class="stat-card">
+        <span class="stat-icon">🏢</span>
         <div class="stat-label">Clients</div>
-        <div class="stat-value"><%= stats.clients %></div>
+        <div class="stat-value" data-countup="<%= stats.clients %>">0</div>
       </div>
       <div class="stat-card">
+        <span class="stat-icon">📩</span>
         <div class="stat-label">Submitted</div>
-        <div class="stat-value"><%= stats.submitted %></div>
+        <div class="stat-value" data-countup="<%= stats.submitted %>">0</div>
       </div>
       <div class="stat-card">
+        <span class="stat-icon">🔍</span>
         <div class="stat-label">In Review</div>
-        <div class="stat-value"><%= stats.inReview %></div>
+        <div class="stat-value" data-countup="<%= stats.inReview %>">0</div>
       </div>
       <div class="stat-card">
+        <span class="stat-icon">⚡</span>
         <div class="stat-label">In Progress</div>
-        <div class="stat-value"><%= stats.inProgress %></div>
+        <div class="stat-value" data-countup="<%= stats.inProgress %>">0</div>
       </div>
       <div class="stat-card">
+        <span class="stat-icon">✅</span>
         <div class="stat-label">Complete</div>
-        <div class="stat-value"><%= stats.complete %></div>
+        <div class="stat-value" data-countup="<%= stats.complete %>">0</div>
+      </div>
+      <div class="stat-card">
+        <span class="stat-icon">⭐</span>
+        <div class="stat-label">Avg Rating</div>
+        <div class="stat-value"><%= stats.ratingCount > 0 ? stats.avgRating.toFixed(1) : '—' %><span style="font-size:14px;color:var(--text-secondary)"><%= stats.ratingCount > 0 ? '/5' : '' %></span></div>
+      </div>
+      <div class="stat-card">
+        <span class="stat-icon">💰</span>
+        <div class="stat-label">Pipeline Value</div>
+        <div class="stat-value" style="font-size:24px">$<span data-countup="<%= stats.pipeline %>">0</span></div>
       </div>
     </div>
 
-    <div class="card">
-      <div class="card-header">
-        <h3>Recent Requests</h3>
-        <a href="/admin/requests" class="btn btn-secondary btn-sm">View All</a>
+    <div style="display:grid;grid-template-columns:2fr 1fr;gap:24px">
+      <!-- Recent Requests -->
+      <div class="card">
+        <div class="card-header">
+          <h3>Recent Requests</h3>
+          <a href="/admin/requests" class="btn btn-secondary btn-sm">View All</a>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Client</th>
+              <th>Service</th>
+              <th>Urgency</th>
+              <th>Status</th>
+              <th>Date</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% recentRequests.forEach(r => { %>
+            <tr style="cursor:pointer" onclick="window.location='/admin/requests/<%= r.id %>'">
+              <td><a href="/admin/requests/<%= r.id %>">#<%= r.id %></a></td>
+              <td><%= r.company_name %></td>
+              <td><%= r.service_type_name %></td>
+              <td><span class="badge badge-<%= r.urgency %>"><%= r.urgency %></span></td>
+              <td><span class="badge badge-<%= r.status %>"><%= r.status.replace('_', ' ') %></span></td>
+              <td><%= new Date(r.created_at).toLocaleDateString() %></td>
+            </tr>
+            <% }) %>
+            <% if (recentRequests.length === 0) { %>
+            <tr><td colspan="6" style="text-align:center;padding:32px;color:var(--text-secondary)">No requests yet</td></tr>
+            <% } %>
+          </tbody>
+        </table>
       </div>
-      <table>
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Client</th>
-            <th>Service</th>
-            <th>Urgency</th>
-            <th>Status</th>
-            <th>Date</th>
-          </tr>
-        </thead>
-        <tbody>
-          <% recentRequests.forEach(r => { %>
-          <tr style="cursor:pointer" onclick="window.location='/admin/requests/<%= r.id %>'">
-            <td><a href="/admin/requests/<%= r.id %>">#<%= r.id %></a></td>
-            <td><%= r.company_name %></td>
-            <td><%= r.service_type_name %></td>
-            <td><span class="badge badge-<%= r.urgency %>"><%= r.urgency %></span></td>
-            <td><span class="badge badge-<%= r.status %>"><%= r.status.replace('_', ' ') %></span></td>
-            <td><%= new Date(r.created_at).toLocaleDateString() %></td>
-          </tr>
-          <% }) %>
-          <% if (recentRequests.length === 0) { %>
-          <tr><td colspan="6" style="text-align:center;padding:32px;color:#94a3b8">No requests yet</td></tr>
+
+      <!-- Recent Activity Feed -->
+      <div class="card">
+        <div class="card-header">
+          <h3>Recent Activity</h3>
+        </div>
+        <div style="padding:12px;max-height:500px;overflow-y:auto">
+          <% if (recentActivity && recentActivity.length > 0) { %>
+            <% recentActivity.forEach(a => {
+              const timeAgo = (() => {
+                const diff = Date.now() - new Date(a.created_at).getTime();
+                const mins = Math.floor(diff / 60000);
+                if (mins < 1) return 'just now';
+                if (mins < 60) return mins + 'm ago';
+                const hrs = Math.floor(mins / 60);
+                if (hrs < 24) return hrs + 'h ago';
+                return Math.floor(hrs / 24) + 'd ago';
+              })();
+              const icon = a.comment_type === 'status_change' ? '🔄' : a.comment_type === 'file_upload' ? '📎' : a.comment_type === 'system' ? '⚙️' : '💬';
+            %>
+            <div style="padding:10px;border-bottom:1px solid var(--row-sep);font-size:13px">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+                <span><%= icon %></span>
+                <strong style="color:var(--cyan);font-size:12px"><%= a.company_name %></strong>
+                <span style="margin-left:auto;color:var(--text-secondary);font-size:11px"><%= timeAgo %></span>
+              </div>
+              <div style="color:var(--text-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis"><%= a.comment %></div>
+            </div>
+            <% }) %>
+          <% } else { %>
+            <div class="empty-state" style="padding:24px"><p>No activity yet.</p></div>
           <% } %>
-        </tbody>
-      </table>
+        </div>
+      </div>
     </div>
   </div>
 </div>

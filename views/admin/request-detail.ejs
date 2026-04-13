@@ -6,7 +6,7 @@
     <button class="hamburger" onclick="toggleSidebar()">☰</button>
     <h2>View Service Request</h2>
     <div style="display:flex;align-items:center;gap:12px">
-      <span style="font-size:13px;color:var(--gray-400)">Admin &rsaquo; <a href="/admin/requests" style="color:var(--gray-500);text-decoration:none">Service Requests</a> &rsaquo; Ticket #<%= String(request.id).padStart(6, '0') %></span>
+      <span style="font-size:13px;color:var(--text-secondary)">Admin &rsaquo; <a href="/admin/requests" style="color:var(--text-secondary);text-decoration:none">Requests</a> &rsaquo; #<%= String(request.id).padStart(6, '0') %></span>
       <a href="/admin/requests" class="btn btn-secondary btn-sm">← Back</a>
     </div>
   </div>
@@ -22,7 +22,7 @@
         </div>
         <div class="detail-row">
           <div class="detail-label">Ticket #</div>
-          <div class="detail-value" style="font-weight:600;font-family:monospace"><%= String(request.id).padStart(6, '0') %></div>
+          <div class="detail-value" style="font-weight:600;font-family:monospace;color:var(--cyan)"><%= String(request.id).padStart(6, '0') %></div>
         </div>
         <div class="detail-row">
           <div class="detail-label">Client</div>
@@ -50,7 +50,22 @@
         <h3>Description</h3>
         <div class="description-text" style="margin-bottom:20px"><%= request.description %></div>
         <h3 style="margin-top:16px">Admin Notes</h3>
-        <div class="description-text" style="color:<%= request.admin_notes ? 'var(--gray-700)' : 'var(--gray-400)' %>"><%= request.admin_notes || 'None' %></div>
+        <div class="description-text" style="color:<%= request.admin_notes ? 'var(--text)' : 'var(--text-secondary)' %>"><%= request.admin_notes || 'None' %></div>
+
+        <% if (rating) { %>
+        <div style="margin-top:20px;padding:16px;background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.15);border-radius:8px">
+          <h3 style="color:#fbbf24;margin-bottom:8px">Client Rating</h3>
+          <div style="font-size:20px;margin-bottom:4px">
+            <% for (let i = 1; i <= 5; i++) { %>
+              <span style="color:<%= i <= rating.rating ? '#fbbf24' : 'var(--text-secondary)' %>">★</span>
+            <% } %>
+            <span style="font-size:14px;color:var(--text-secondary);margin-left:8px"><%= rating.rating %>/5</span>
+          </div>
+          <% if (rating.feedback) { %>
+            <div style="color:var(--text);font-style:italic;font-size:14px">"<%= rating.feedback %>"</div>
+          <% } %>
+        </div>
+        <% } %>
       </div>
     </div>
 
@@ -58,7 +73,7 @@
     <div style="display:flex;gap:12px;margin-bottom:24px;flex-wrap:wrap">
       <a href="#section-comment" class="btn btn-primary btn-sm">💬 Add Comment</a>
       <a href="#section-upload" class="btn btn-secondary btn-sm">📎 Upload File</a>
-      <a href="#section-status" class="btn btn-sm" style="background:var(--green);color:white">🔄 Update Status</a>
+      <a href="#section-status" class="btn btn-sm" style="background:rgba(16,185,129,0.15);color:#10b981;border:1px solid rgba(16,185,129,0.3)">🔄 Update Status</a>
     </div>
 
     <!-- Activity Log -->
@@ -70,20 +85,20 @@
       <div style="padding:16px;display:flex;flex-direction:column;gap:12px">
         <% comments.forEach(c => {
           const isAdmin = c.author_role === 'admin';
-          const borderColor = isAdmin ? '#1e3a5f' : '#64748b';
-          const labelColor = isAdmin ? '#1e3a5f' : '#475569';
+          const borderColor = isAdmin ? '#00d4ff' : '#7c3aed';
+          const labelColor = isAdmin ? '#00d4ff' : '#a78bfa';
           const label = isAdmin ? 'Admin (You)' : c.author_name;
-          let bgColor = '#fff';
-          if (c.comment_type === 'status_change') bgColor = '#eff6ff';
-          else if (c.comment_type === 'file_upload') bgColor = '#f0fdf4';
-          else if (c.comment_type === 'system') bgColor = '#f8fafc';
+          let bgColor = 'rgba(255,255,255,0.02)';
+          if (c.comment_type === 'status_change') bgColor = 'rgba(0,212,255,0.04)';
+          else if (c.comment_type === 'file_upload') bgColor = 'rgba(16,185,129,0.04)';
+          else if (c.comment_type === 'system') bgColor = 'rgba(255,255,255,0.01)';
         %>
-        <div style="border-left:4px solid <%= borderColor %>;padding:12px 16px;background:<%= bgColor %>;border-radius:4px">
+        <div style="border-left:3px solid <%= borderColor %>;padding:12px 16px;background:<%= bgColor %>;border-radius:0 8px 8px 0">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
-            <strong style="color:<%= labelColor %>"><%= label %></strong>
-            <span style="font-size:12px;color:var(--gray-400)"><%= new Date(c.created_at).toLocaleString() %></span>
+            <strong style="color:<%= labelColor %>;font-size:13px"><%= label %></strong>
+            <span style="font-size:12px;color:var(--text-secondary)"><%= new Date(c.created_at).toLocaleString() %></span>
           </div>
-          <div style="color:var(--gray-700);<%= c.comment_type === 'system' ? 'font-style:italic;' : '' %>"><%= c.comment %></div>
+          <div style="color:var(--text);<%= c.comment_type === 'system' ? 'font-style:italic;opacity:0.7;' : '' %>"><%= c.comment %></div>
           <% if (c.comment_type !== 'comment') { %>
             <span class="badge badge-<%= c.comment_type === 'status_change' ? 'in_progress' : c.comment_type === 'file_upload' ? 'complete' : 'submitted' %>" style="margin-top:6px;display:inline-block"><%= c.comment_type.replace('_', ' ') %></span>
           <% } %>
@@ -112,8 +127,8 @@
           <% attachments.forEach(a => { %>
           <tr>
             <td><a href="/uploads/<%= a.filename %>" target="_blank">📎 <%= a.original_name %></a></td>
-            <td><%= a.mimetype %></td>
-            <td><%= new Date(a.created_at).toLocaleString() %></td>
+            <td style="color:var(--text-secondary)"><%= a.mimetype %></td>
+            <td style="color:var(--text-secondary)"><%= new Date(a.created_at).toLocaleString() %></td>
             <td><a href="/uploads/<%= a.filename %>" download class="btn btn-secondary btn-sm">Download</a></td>
           </tr>
           <% }) %>
@@ -163,7 +178,7 @@
             <label>Admin Notes</label>
             <textarea name="admin_notes" class="form-control" rows="3"><%= request.admin_notes || '' %></textarea>
           </div>
-          <button type="submit" class="btn btn-sm" style="background:var(--green);color:white;width:100%;padding:10px 20px">Update Status</button>
+          <button type="submit" class="btn btn-sm" style="background:rgba(16,185,129,0.15);color:#10b981;border:1px solid rgba(16,185,129,0.3);width:100%;padding:10px 20px">Update Status</button>
         </form>
       </div>
     </div>

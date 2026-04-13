@@ -1,20 +1,88 @@
 <nav class="sidebar">
   <div class="sidebar-brand">
-    <h1>Vivid <span>Views</span></h1>
-    <small>Admin Portal</small>
+    <div class="sidebar-monogram">VV</div>
+    <div class="sidebar-brand-text">
+      <h1>Vivid Views</h1>
+      <small>Admin Portal</small>
+    </div>
   </div>
   <div class="sidebar-nav">
     <a href="/admin" class="<%= active === 'dashboard' ? 'active' : '' %>"><span class="nav-icon">📊</span> Dashboard</a>
-    <a href="/admin/clients" class="<%= active === 'clients' ? 'active' : '' %>"><span class="nav-icon">👥</span> Clients</a>
+    <a href="/admin/clients" class="<%= active === 'clients' ? 'active' : '' %>"><span class="nav-icon">🏢</span> Clients</a>
     <a href="/admin/requests" class="<%= active === 'requests' ? 'active' : '' %>"><span class="nav-icon">📋</span> Requests</a>
+    <a href="/admin/revenue" class="<%= active === 'revenue' ? 'active' : '' %>"><span class="nav-icon">💰</span> Revenue</a>
   </div>
   <div class="sidebar-footer">
+    <div class="user-avatar"><%= user.name ? user.name.charAt(0).toUpperCase() : 'A' %></div>
     <div class="user-info">
       <strong><%= user.name %></strong>
-      <%= user.email %>
+      <span>Admin</span>
     </div>
-    <form method="POST" action="/auth/logout">
-      <button type="submit" class="btn-logout">Sign out</button>
+    <form method="POST" action="/auth/logout" style="margin:0">
+      <button type="submit" class="btn-logout">↗</button>
     </form>
   </div>
 </nav>
+
+<!-- Command Palette -->
+<div class="cmd-overlay" id="cmdPalette">
+  <div class="cmd-palette">
+    <input type="text" class="cmd-input" id="cmdInput" placeholder="Search commands..." autocomplete="off">
+    <div class="cmd-results" id="cmdResults"></div>
+    <div class="cmd-hint">↑↓ Navigate · Enter Select · Esc Close</div>
+  </div>
+</div>
+
+<script>
+(function() {
+  const commands = [
+    { icon: '📊', label: 'Dashboard', url: '/admin' },
+    { icon: '🏢', label: 'All Clients', url: '/admin/clients' },
+    { icon: '📋', label: 'All Requests', url: '/admin/requests' },
+    { icon: '💰', label: 'Revenue', url: '/admin/revenue' },
+    { icon: '➕', label: 'New Client', url: '/admin/clients/new' },
+  ];
+
+  const overlay = document.getElementById('cmdPalette');
+  const input = document.getElementById('cmdInput');
+  const results = document.getElementById('cmdResults');
+  let activeIdx = 0;
+
+  function render(filter) {
+    const filtered = filter
+      ? commands.filter(c => c.label.toLowerCase().includes(filter.toLowerCase()))
+      : commands;
+    activeIdx = 0;
+    results.innerHTML = filtered.map((c, i) =>
+      `<div class="cmd-item ${i === 0 ? 'active' : ''}" data-url="${c.url}">
+        <span class="cmd-icon">${c.icon}</span> ${c.label}
+      </div>`
+    ).join('');
+    results.querySelectorAll('.cmd-item').forEach((el, i) => {
+      el.addEventListener('click', () => { window.location.href = el.dataset.url; });
+      el.addEventListener('mouseenter', () => {
+        results.querySelectorAll('.cmd-item').forEach(e => e.classList.remove('active'));
+        el.classList.add('active');
+        activeIdx = i;
+      });
+    });
+  }
+
+  function open() { overlay.classList.add('active'); input.value = ''; render(''); input.focus(); }
+  function close() { overlay.classList.remove('active'); }
+
+  document.addEventListener('keydown', e => {
+    if ((e.metaKey || e.ctrlKey) && e.key === 'k') { e.preventDefault(); open(); return; }
+    if (!overlay.classList.contains('active')) return;
+    if (e.key === 'Escape') { close(); return; }
+    const items = results.querySelectorAll('.cmd-item');
+    if (e.key === 'ArrowDown') { e.preventDefault(); activeIdx = (activeIdx + 1) % items.length; }
+    if (e.key === 'ArrowUp') { e.preventDefault(); activeIdx = (activeIdx - 1 + items.length) % items.length; }
+    if (e.key === 'Enter' && items[activeIdx]) { window.location.href = items[activeIdx].dataset.url; return; }
+    items.forEach((el, i) => el.classList.toggle('active', i === activeIdx));
+  });
+
+  input.addEventListener('input', () => render(input.value));
+  overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
+})();
+</script>

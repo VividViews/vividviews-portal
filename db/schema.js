@@ -76,6 +76,34 @@ async function migrate() {
         comment_type TEXT NOT NULL DEFAULT 'comment',
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       );
+
+      CREATE TABLE IF NOT EXISTS projects (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        client_id INTEGER NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+        name TEXT NOT NULL,
+        value REAL NOT NULL DEFAULT 0,
+        status TEXT NOT NULL DEFAULT 'active' CHECK(status IN ('active','completed','cancelled')),
+        invoiced INTEGER NOT NULL DEFAULT 0,
+        paid INTEGER NOT NULL DEFAULT 0,
+        notes TEXT DEFAULT '',
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE TABLE IF NOT EXISTS client_notes (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        client_id INTEGER NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+        note TEXT NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE TABLE IF NOT EXISTS request_ratings (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        service_request_id INTEGER NOT NULL UNIQUE REFERENCES service_requests(id) ON DELETE CASCADE,
+        rating INTEGER NOT NULL CHECK(rating >= 1 AND rating <= 5),
+        feedback TEXT DEFAULT '',
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      );
     `);
   } else {
     await db.exec(`
@@ -150,6 +178,34 @@ async function migrate() {
         author_role TEXT NOT NULL,
         comment TEXT NOT NULL,
         comment_type TEXT NOT NULL DEFAULT 'comment',
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      );
+
+      CREATE TABLE IF NOT EXISTS projects (
+        id SERIAL PRIMARY KEY,
+        client_id INTEGER NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+        name TEXT NOT NULL,
+        value DECIMAL(10,2) NOT NULL DEFAULT 0,
+        status TEXT NOT NULL DEFAULT 'active' CHECK(status IN ('active','completed','cancelled')),
+        invoiced BOOLEAN NOT NULL DEFAULT FALSE,
+        paid BOOLEAN NOT NULL DEFAULT FALSE,
+        notes TEXT DEFAULT '',
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        updated_at TIMESTAMPTZ DEFAULT NOW()
+      );
+
+      CREATE TABLE IF NOT EXISTS client_notes (
+        id SERIAL PRIMARY KEY,
+        client_id INTEGER NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+        note TEXT NOT NULL,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      );
+
+      CREATE TABLE IF NOT EXISTS request_ratings (
+        id SERIAL PRIMARY KEY,
+        service_request_id INTEGER NOT NULL UNIQUE REFERENCES service_requests(id) ON DELETE CASCADE,
+        rating INTEGER NOT NULL CHECK(rating >= 1 AND rating <= 5),
+        feedback TEXT DEFAULT '',
         created_at TIMESTAMPTZ DEFAULT NOW()
       );
 

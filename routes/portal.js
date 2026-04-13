@@ -31,7 +31,6 @@ router.get('/', async (req, res) => {
     JOIN service_types st ON sr.service_type_id = st.id
     WHERE sr.client_id = $1
     ORDER BY sr.created_at DESC
-    LIMIT 10
   `, [clientId]);
 
   res.render('portal/dashboard', {
@@ -44,6 +43,35 @@ router.get('/', async (req, res) => {
       complete: complete[0].count
     },
     requests
+  });
+});
+
+// File Vault
+router.get('/files', async (req, res) => {
+  const clientId = req.session.user.clientId;
+  const requests = await db.query(`
+    SELECT sr.id, sr.description, st.name as service_type_name, sr.created_at
+    FROM service_requests sr
+    JOIN service_types st ON sr.service_type_id = st.id
+    WHERE sr.client_id = $1
+    ORDER BY sr.created_at DESC
+  `, [clientId]);
+
+  // Get attachments for each request
+  for (const r of requests) {
+    r.attachments = await db.query(
+      'SELECT * FROM attachments WHERE service_request_id = $1 ORDER BY created_at DESC',
+      [r.id]
+    );
+  }
+
+  // Filter to only requests with attachments
+  const requestsWithFiles = requests.filter(r => r.attachments.length > 0);
+
+  res.render('portal/files', {
+    title: 'File Vault',
+    user: req.session.user,
+    requests: requestsWithFiles
   });
 });
 
@@ -67,7 +95,6 @@ router.post('/requests', upload.array('files', 5), async (req, res) => {
   const clientId = req.session.user.clientId;
 
   try {
-    // Verify service type belongs to this client
     const st = await db.get(
       'SELECT * FROM service_types WHERE id = $1 AND client_id = $2',
       [service_type_id, clientId]
@@ -79,7 +106,6 @@ router.post('/requests', upload.array('files', 5), async (req, res) => {
       [clientId, service_type_id, description, urgency]
     );
 
-    // Save attachments
     if (req.files && req.files.length > 0) {
       for (const file of req.files) {
         await db.run(
@@ -89,7 +115,6 @@ router.post('/requests', upload.array('files', 5), async (req, res) => {
       }
     }
 
-    // System comment for new request
     await db.run(
       'INSERT INTO request_comments (service_request_id, author_name, author_role, comment, comment_type) VALUES ($1, $2, $3, $4, $5)',
       [result.lastID, 'System', 'system', `Request submitted by ${req.session.user.name}`, 'system']
@@ -132,18 +157,49 @@ router.get('/requests/:id', async (req, res) => {
     [req.params.id]
   );
 
+  const rating = await db.get(
+    'SELECT * FROM request_ratings WHERE service_request_id = $1',
+    [req.params.id]
+  );
+
   res.render('portal/request-detail', {
     title: `Request #${request.id}`,
     user: req.session.user,
     request,
     attachments,
-    comments
+    comments,
+    rating
   });
+});
+
+// Submit rating
+router.post('/requests/:id/rate', async (req, res) => {
+  const request = await db.get(
+    "SELECT id, status FROM service_requests WHERE id = $1 AND client_id = $2 AND status = 'complete'",
+    [req.params.id, req.session.user.clientId]
+  );
+  if (!request) return res.redirect('/portal');
+
+  const existing = await db.get(
+    'SELECT id FROM request_ratings WHERE service_request_id = $1',
+    [req.params.id]
+  );
+  if (existing) return res.redirect(`/portal/requests/${req.params.id}`);
+
+  const { rating, feedback } = req.body;
+  const ratingVal = parseInt(rating);
+  if (ratingVal < 1 || ratingVal > 5) return res.redirect(`/portal/requests/${req.params.id}`);
+
+  await db.run(
+    'INSERT INTO request_ratings (service_request_id, rating, feedback) VALUES ($1, $2, $3)',
+    [req.params.id, ratingVal, feedback || '']
+  );
+
+  res.redirect(`/portal/requests/${req.params.id}`);
 });
 
 // Client adds a comment
 router.post('/requests/:id/comment', async (req, res) => {
-  // Verify ownership
   const request = await db.get(
     'SELECT id FROM service_requests WHERE id = $1 AND client_id = $2',
     [req.params.id, req.session.user.clientId]

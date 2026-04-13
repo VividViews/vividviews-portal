@@ -4,65 +4,79 @@
 <div class="main">
   <div class="topbar">
     <button class="hamburger" onclick="toggleSidebar()">☰</button>
-    <h2>Welcome, <%= user.companyName %></h2>
-    <a href="/portal/requests/new" class="btn btn-primary btn-sm">+ New Request</a>
+    <h2>Dashboard</h2>
+    <a href="/portal/requests/new" class="btn btn-primary btn-sm">➕ New Request</a>
   </div>
   <div class="content">
-    <div class="stats-grid">
-      <div class="stat-card">
-        <div class="stat-label">Submitted</div>
-        <div class="stat-value"><%= stats.submitted %></div>
+    <!-- Welcome Banner -->
+    <div style="background:var(--gradient);border-radius:12px;padding:24px 32px;margin-bottom:32px;position:relative;overflow:hidden">
+      <div style="position:relative;z-index:1">
+        <h2 style="color:#fff;font-size:24px;font-weight:700;margin-bottom:4px">Welcome back, <%= user.companyName %> 👋</h2>
+        <p style="color:rgba(255,255,255,0.7);font-size:14px">Here's an overview of your service requests</p>
       </div>
-      <div class="stat-card">
-        <div class="stat-label">In Review</div>
-        <div class="stat-value"><%= stats.inReview %></div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">In Progress</div>
-        <div class="stat-value"><%= stats.inProgress %></div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Complete</div>
-        <div class="stat-value"><%= stats.complete %></div>
-      </div>
+      <div style="position:absolute;right:32px;top:50%;transform:translateY(-50%);font-size:64px;opacity:0.15">🚀</div>
     </div>
 
-    <div class="card">
-      <div class="card-header">
-        <h3>Your Requests</h3>
-        <a href="/portal/requests/new" class="btn btn-primary btn-sm">+ New Request</a>
+    <!-- Kanban Status Overview -->
+    <style>
+      .kanban { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 32px; }
+      .kanban-col { background: var(--card-bg); backdrop-filter: blur(20px); border-radius: 12px; border: 1px solid var(--card-border); padding: 16px; min-height: 200px; }
+      .kanban-col h4 { font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+      .kanban-col h4 .count { background: rgba(255,255,255,0.1); padding: 2px 8px; border-radius: 999px; font-size: 11px; }
+      .kanban-card {
+        background: rgba(255,255,255,0.03); border: 1px solid var(--card-border);
+        border-radius: 8px; padding: 12px; margin-bottom: 8px; cursor: pointer;
+        transition: all 0.2s;
+      }
+      .kanban-card:hover { background: var(--hover-row); border-color: rgba(0,212,255,0.2); transform: translateY(-1px); }
+      .kanban-card .kc-type { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+      .kanban-card .kc-meta { display: flex; justify-content: space-between; align-items: center; }
+      @media (max-width: 768px) { .kanban { grid-template-columns: repeat(2, 1fr); } }
+    </style>
+
+    <%
+      const statuses = ['submitted', 'in_review', 'in_progress', 'complete'];
+      const statusLabels = { submitted: 'Submitted', in_review: 'In Review', in_progress: 'In Progress', complete: 'Complete' };
+      const statusColors = { submitted: '#94a3b8', in_review: '#fbbf24', in_progress: '#00d4ff', complete: '#10b981' };
+    %>
+
+    <div class="kanban">
+      <% statuses.forEach(s => {
+        const items = requests.filter(r => r.status === s);
+      %>
+      <div class="kanban-col">
+        <h4 style="color:<%= statusColors[s] %>">
+          <%= statusLabels[s] %>
+          <span class="count"><%= items.length %></span>
+        </h4>
+        <% items.forEach(r => { %>
+        <div class="kanban-card" onclick="window.location='/portal/requests/<%= r.id %>'">
+          <div class="kc-type"><%= r.service_type_name %></div>
+          <div class="kc-meta">
+            <span class="badge badge-<%= r.urgency %>" style="font-size:10px;padding:2px 6px"><%= r.urgency %></span>
+            <span style="font-size:11px;color:var(--text-secondary)"><%= new Date(r.created_at).toLocaleDateString() %></span>
+          </div>
+        </div>
+        <% }) %>
+        <% if (items.length === 0) { %>
+          <div style="text-align:center;padding:20px;color:var(--text-secondary);font-size:13px;opacity:0.5">Empty</div>
+        <% } %>
       </div>
-      <table>
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Service</th>
-            <th>Urgency</th>
-            <th>Status</th>
-            <th>Date</th>
-          </tr>
-        </thead>
-        <tbody>
-          <% requests.forEach(r => { %>
-          <tr>
-            <td><a href="/portal/requests/<%= r.id %>">#<%= r.id %></a></td>
-            <td><%= r.service_type_name %></td>
-            <td><span class="badge badge-<%= r.urgency %>"><%= r.urgency %></span></td>
-            <td><span class="badge badge-<%= r.status %>"><%= r.status.replace('_', ' ') %></span></td>
-            <td><%= new Date(r.created_at).toLocaleDateString() %></td>
-          </tr>
-          <% }) %>
-          <% if (requests.length === 0) { %>
-          <tr><td colspan="5">
-            <div class="empty-state">
-              <div class="icon">📋</div>
-              <p>No requests yet. Submit your first one!</p>
-              <a href="/portal/requests/new" class="btn btn-primary" style="margin-top:16px">New Request</a>
-            </div>
-          </td></tr>
-          <% } %>
-        </tbody>
-      </table>
+      <% }) %>
+    </div>
+
+    <!-- Quick Links -->
+    <div class="stats-grid" style="grid-template-columns:repeat(auto-fit, minmax(180px, 1fr))">
+      <a href="/portal/requests/new" class="stat-card" style="text-decoration:none;cursor:pointer;transition:all 0.2s" onmouseover="this.style.borderColor='rgba(0,212,255,0.3)'" onmouseout="this.style.borderColor=''">
+        <span class="stat-icon">➕</span>
+        <div class="stat-label">New Request</div>
+        <div style="font-size:14px;color:var(--cyan);margin-top:4px">Submit a request →</div>
+      </a>
+      <a href="/portal/files" class="stat-card" style="text-decoration:none;cursor:pointer;transition:all 0.2s" onmouseover="this.style.borderColor='rgba(0,212,255,0.3)'" onmouseout="this.style.borderColor=''">
+        <span class="stat-icon">🔒</span>
+        <div class="stat-label">File Vault</div>
+        <div style="font-size:14px;color:var(--cyan);margin-top:4px">View files →</div>
+      </a>
     </div>
   </div>
 </div>

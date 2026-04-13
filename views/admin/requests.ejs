@@ -50,11 +50,11 @@
             <td><%= r.service_type_name %></td>
             <td><span class="badge badge-<%= r.urgency %>"><%= r.urgency %></span></td>
             <td><span class="badge badge-<%= r.status %>"><%= r.status.replace('_', ' ') %></span></td>
-            <td><%= new Date(r.created_at).toLocaleDateString() %></td>
+            <td style="color:var(--text-secondary)"><%= new Date(r.created_at).toLocaleDateString() %></td>
           </tr>
           <% }) %>
           <% if (requests.length === 0) { %>
-          <tr><td colspan="6" style="text-align:center;padding:32px;color:#94a3b8">No requests match your filters</td></tr>
+          <tr><td colspan="6" style="text-align:center;padding:32px;color:var(--text-secondary)">No requests match your filters</td></tr>
           <% } %>
         </tbody>
       </table>

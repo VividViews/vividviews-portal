@@ -1,0 +1,53 @@
+<%- include('../partials/head', { title }) %>
+<%- include('../partials/sidebar-client', { user, active: 'files' }) %>
+
+<div class="main">
+  <div class="topbar">
+    <button class="hamburger" onclick="toggleSidebar()">☰</button>
+    <h2>🔒 File Vault</h2>
+    <a href="/portal" class="btn btn-secondary btn-sm">← Back</a>
+  </div>
+  <div class="content">
+    <% if (requests.length === 0) { %>
+      <div class="detail-section" style="text-align:center;padding:60px 20px">
+        <div style="font-size:64px;margin-bottom:16px;opacity:0.3">🔒</div>
+        <h3 style="color:var(--text);margin-bottom:8px">No files yet</h3>
+        <p style="color:var(--text-secondary);font-size:14px">Your deliverables will appear here as they're uploaded to your requests.</p>
+      </div>
+    <% } else { %>
+      <% requests.forEach(r => { %>
+      <div class="card" style="margin-bottom:24px">
+        <div class="card-header">
+          <h3>
+            <a href="/portal/requests/<%= r.id %>" style="color:var(--cyan);text-decoration:none">Request #<%= r.id %></a>
+            <span style="font-weight:400;color:var(--text-secondary);font-size:13px;margin-left:8px">— <%= r.service_type_name %></span>
+          </h3>
+          <span style="font-size:12px;color:var(--text-secondary)"><%= new Date(r.created_at).toLocaleDateString() %></span>
+        </div>
+        <div style="padding:16px;display:grid;grid-template-columns:repeat(auto-fill, minmax(250px, 1fr));gap:12px">
+          <% r.attachments.forEach(a => {
+            const ext = a.original_name.split('.').pop().toLowerCase();
+            let icon = '📁';
+            if (['pdf'].includes(ext)) icon = '📄';
+            else if (['jpg','jpeg','png','gif','webp','svg'].includes(ext)) icon = '🖼️';
+            else if (['xls','xlsx','csv'].includes(ext)) icon = '📊';
+            else if (['doc','docx','txt'].includes(ext)) icon = '📝';
+            else if (['zip','rar','7z'].includes(ext)) icon = '📦';
+          %>
+          <div style="background:rgba(255,255,255,0.03);border:1px solid var(--card-border);border-radius:8px;padding:16px;display:flex;align-items:center;gap:12px;transition:all 0.2s" onmouseover="this.style.borderColor='rgba(0,212,255,0.2)'" onmouseout="this.style.borderColor=''">
+            <span style="font-size:28px"><%= icon %></span>
+            <div style="flex:1;min-width:0">
+              <div style="font-size:14px;font-weight:500;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="<%= a.original_name %>"><%= a.original_name %></div>
+              <div style="font-size:11px;color:var(--text-secondary);margin-top:2px"><%= new Date(a.created_at).toLocaleDateString() %></div>
+            </div>
+            <a href="/uploads/<%= a.filename %>" download class="btn btn-secondary btn-sm" style="flex-shrink:0">⬇</a>
+          </div>
+          <% }) %>
+        </div>
+      </div>
+      <% }) %>
+    <% } %>
+  </div>
+</div>
+
+<%- include('../partials/foot') %>

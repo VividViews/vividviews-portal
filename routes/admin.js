@@ -4,6 +4,7 @@ const multer = require('multer');
 const path = require('path');
 const db = require('../utils/db');
 const { requireAdmin } = require('../middleware/auth');
+const { sendStatusUpdate } = require('../utils/email');
 const router = express.Router();
 
 const storage = multer.diskStorage({
@@ -25,12 +26,28 @@ router.get('/', async (req, res) => {
   const inReview = await db.query("SELECT COUNT(*) as count FROM service_requests WHERE status = 'in_review'");
   const complete = await db.query("SELECT COUNT(*) as count FROM service_requests WHERE status = 'complete'");
 
+  // Average rating
+  const avgRating = await db.get('SELECT AVG(rating) as avg, COUNT(*) as count FROM request_ratings');
+
+  // Pipeline value
+  const pipeline = await db.get("SELECT COALESCE(SUM(value), 0) as total FROM projects WHERE status = 'active'");
+
   const recentRequests = await db.query(`
     SELECT sr.*, c.company_name, st.name as service_type_name
     FROM service_requests sr
     JOIN clients c ON sr.client_id = c.id
     JOIN service_types st ON sr.service_type_id = st.id
     ORDER BY sr.created_at DESC
+    LIMIT 10
+  `);
+
+  // Recent activity: last 10 comments/status changes
+  const recentActivity = await db.query(`
+    SELECT rc.*, c.company_name
+    FROM request_comments rc
+    JOIN service_requests sr ON rc.service_request_id = sr.id
+    JOIN clients c ON sr.client_id = c.id
+    ORDER BY rc.created_at DESC
     LIMIT 10
   `);
 
@@ -42,9 +59,13 @@ router.get('/', async (req, res) => {
       submitted: submitted[0].count,
       inReview: inReview[0].count,
       inProgress: inProgress[0].count,
-      complete: complete[0].count
+      complete: complete[0].count,
+      avgRating: avgRating ? (parseFloat(avgRating.avg) || 0) : 0,
+      ratingCount: avgRating ? (parseInt(avgRating.count) || 0) : 0,
+      pipeline: pipeline ? parseFloat(pipeline.total) || 0 : 0
     },
-    recentRequests
+    recentRequests,
+    recentActivity
   });
 });
 
@@ -70,6 +91,7 @@ router.get('/clients/new', (req, res) => {
     serviceTypes: [],
     requests: [],
     brands: [],
+    notes: [],
     error: null
   });
 });
@@ -99,6 +121,7 @@ router.post('/clients', async (req, res) => {
       serviceTypes: [],
       requests: [],
       brands: [],
+      notes: [],
       error: err.message.includes('UNIQUE') ? 'Email already exists' : 'Failed to create client'
     });
   }
@@ -125,6 +148,9 @@ router.get('/clients/:id', async (req, res) => {
     brand.sites = await db.query('SELECT * FROM carwash_sites WHERE brand_id = $1 ORDER BY site_name', [brand.id]);
   }
 
+  // Fetch private notes
+  const notes = await db.query('SELECT * FROM client_notes WHERE client_id = $1 ORDER BY created_at DESC', [client.id]);
+
   res.render('admin/client-detail', {
     title: client.company_name,
     user: req.session.user,
@@ -133,8 +159,27 @@ router.get('/clients/:id', async (req, res) => {
     serviceTypes,
     requests,
     brands,
+    notes,
     error: null
   });
+});
+
+// Add private note to client
+router.post('/clients/:id/notes', async (req, res) => {
+  const { note } = req.body;
+  if (note && note.trim()) {
+    await db.run(
+      'INSERT INTO client_notes (client_id, note) VALUES ($1, $2)',
+      [req.params.id, note.trim()]
+    );
+  }
+  res.redirect(`/admin/clients/${req.params.id}`);
+});
+
+// Delete private note
+router.delete('/clients/:id/notes/:nid', async (req, res) => {
+  await db.run('DELETE FROM client_notes WHERE id = $1 AND client_id = $2', [req.params.nid, req.params.id]);
+  res.json({ ok: true });
 });
 
 // Add service type
@@ -195,7 +240,7 @@ router.get('/requests', async (req, res) => {
 // Request detail
 router.get('/requests/:id', async (req, res) => {
   const request = await db.get(`
-    SELECT sr.*, c.company_name, u.name as contact_name, st.name as service_type_name
+    SELECT sr.*, c.company_name, u.name as contact_name, u.email as contact_email, st.name as service_type_name
     FROM service_requests sr
     JOIN clients c ON sr.client_id = c.id
     JOIN users u ON c.user_id = u.id
@@ -214,16 +259,22 @@ router.get('/requests/:id', async (req, res) => {
     [req.params.id]
   );
 
+  const rating = await db.get(
+    'SELECT * FROM request_ratings WHERE service_request_id = $1',
+    [req.params.id]
+  );
+
   res.render('admin/request-detail', {
     title: `Request #${request.id}`,
     user: req.session.user,
     request,
     attachments,
-    comments
+    comments,
+    rating
   });
 });
 
-// Update request status
+// Update request status (with email notification)
 router.post('/requests/:id/status', async (req, res) => {
   const { status, admin_notes } = req.body;
   await db.run(
@@ -236,6 +287,23 @@ router.post('/requests/:id/status', async (req, res) => {
     'INSERT INTO request_comments (service_request_id, author_name, author_role, comment, comment_type) VALUES ($1, $2, $3, $4, $5)',
     [req.params.id, 'Admin', 'admin', commentText, 'status_change']
   );
+
+  // Send email notification
+  try {
+    const request = await db.get(`
+      SELECT sr.*, u.email as contact_email, u.name as contact_name
+      FROM service_requests sr
+      JOIN clients c ON sr.client_id = c.id
+      JOIN users u ON c.user_id = u.id
+      WHERE sr.id = $1
+    `, [req.params.id]);
+    if (request) {
+      await sendStatusUpdate(request.contact_email, request.contact_name, req.params.id, status, admin_notes);
+    }
+  } catch (err) {
+    console.error('Email notification error:', err.message);
+  }
+
   res.redirect(`/admin/requests/${req.params.id}`);
 });
 
@@ -266,9 +334,76 @@ router.post('/requests/:id/upload', upload.single('file'), async (req, res) => {
   res.redirect(`/admin/requests/${req.params.id}`);
 });
 
+// ============ Revenue Tracker ============
+
+router.get('/revenue', async (req, res) => {
+  const projects = await db.query(`
+    SELECT p.*, c.company_name
+    FROM projects p
+    JOIN clients c ON p.client_id = c.id
+    ORDER BY p.created_at DESC
+  `);
+  const clients = await db.query('SELECT id, company_name FROM clients ORDER BY company_name');
+
+  const totalPipeline = await db.get("SELECT COALESCE(SUM(value), 0) as total FROM projects WHERE status = 'active'");
+  const invoicedNotPaid = await db.get(
+    db.type === 'pg'
+      ? "SELECT COALESCE(SUM(value), 0) as total FROM projects WHERE invoiced = TRUE AND paid = FALSE"
+      : "SELECT COALESCE(SUM(value), 0) as total FROM projects WHERE invoiced = 1 AND paid = 0"
+  );
+  const paidThisMonth = await db.get(
+    db.type === 'pg'
+      ? "SELECT COALESCE(SUM(value), 0) as total FROM projects WHERE paid = TRUE AND updated_at >= date_trunc('month', CURRENT_DATE)"
+      : "SELECT COALESCE(SUM(value), 0) as total FROM projects WHERE paid = 1 AND updated_at >= date('now', 'start of month')"
+  );
+  const activeCount = await db.get("SELECT COUNT(*) as count FROM projects WHERE status = 'active'");
+
+  res.render('admin/revenue', {
+    title: 'Revenue',
+    user: req.session.user,
+    projects,
+    clients,
+    stats: {
+      pipeline: parseFloat(totalPipeline.total) || 0,
+      invoicedNotPaid: parseFloat(invoicedNotPaid.total) || 0,
+      paidThisMonth: parseFloat(paidThisMonth.total) || 0,
+      activeProjects: parseInt(activeCount.count) || 0
+    }
+  });
+});
+
+router.post('/revenue/projects', async (req, res) => {
+  const { client_id, name, value } = req.body;
+  await db.run(
+    'INSERT INTO projects (client_id, name, value) VALUES ($1, $2, $3)',
+    [client_id, name, parseFloat(value) || 0]
+  );
+  res.redirect('/admin/revenue');
+});
+
+router.post('/revenue/projects/:id/status', async (req, res) => {
+  const { status, invoiced, paid } = req.body;
+  if (status) {
+    await db.run('UPDATE projects SET status = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2', [status, req.params.id]);
+  }
+  if (invoiced !== undefined) {
+    const val = db.type === 'pg' ? (invoiced === '1' ? true : false) : (invoiced === '1' ? 1 : 0);
+    await db.run('UPDATE projects SET invoiced = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2', [val, req.params.id]);
+  }
+  if (paid !== undefined) {
+    const val = db.type === 'pg' ? (paid === '1' ? true : false) : (paid === '1' ? 1 : 0);
+    await db.run('UPDATE projects SET paid = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2', [val, req.params.id]);
+  }
+  res.redirect('/admin/revenue');
+});
+
+router.delete('/revenue/projects/:id', async (req, res) => {
+  await db.run('DELETE FROM projects WHERE id = $1', [req.params.id]);
+  res.json({ ok: true });
+});
+
 // ============ Car Wash Brands & Sites ============
 
-// List brands for a client
 router.get('/clients/:id/brands', async (req, res) => {
   const brands = await db.query('SELECT * FROM carwash_brands WHERE client_id = $1 ORDER BY brand_name', [req.params.id]);
   for (const brand of brands) {
@@ -277,7 +412,6 @@ router.get('/clients/:id/brands', async (req, res) => {
   res.json(brands);
 });
 
-// Create brand
 router.post('/clients/:id/brands', async (req, res) => {
   const { brand_name } = req.body;
   await db.get(
@@ -287,7 +421,6 @@ router.post('/clients/:id/brands', async (req, res) => {
   res.redirect(`/admin/clients/${req.params.id}`);
 });
 
-// Brand detail with sites
 router.get('/clients/:id/brands/:bid', async (req, res) => {
   const brand = await db.get('SELECT * FROM carwash_brands WHERE id = $1 AND client_id = $2', [req.params.bid, req.params.id]);
   if (!brand) return res.redirect(`/admin/clients/${req.params.id}`);
@@ -295,7 +428,6 @@ router.get('/clients/:id/brands/:bid', async (req, res) => {
   res.json(brand);
 });
 
-// Create site
 router.post('/clients/:id/brands/:bid/sites', async (req, res) => {
   const { site_name, address, city, state } = req.body;
   await db.get(
@@ -305,7 +437,6 @@ router.post('/clients/:id/brands/:bid/sites', async (req, res) => {
   res.redirect(`/admin/clients/${req.params.id}`);
 });
 
-// Toggle site status
 router.post('/clients/:id/brands/:bid/sites/:sid/status', async (req, res) => {
   const site = await db.get('SELECT * FROM carwash_sites WHERE id = $1', [req.params.sid]);
   if (site) {
@@ -315,13 +446,11 @@ router.post('/clients/:id/brands/:bid/sites/:sid/status', async (req, res) => {
   res.redirect(`/admin/clients/${req.params.id}`);
 });
 
-// Delete brand
 router.delete('/clients/:id/brands/:bid', async (req, res) => {
   await db.run('DELETE FROM carwash_brands WHERE id = $1 AND client_id = $2', [req.params.bid, req.params.id]);
   res.json({ ok: true });
 });
 
-// Delete site
 router.delete('/clients/:id/brands/:bid/sites/:sid', async (req, res) => {
   await db.run('DELETE FROM carwash_sites WHERE id = $1 AND brand_id = $2', [req.params.sid, req.params.bid]);
   res.json({ ok: true });

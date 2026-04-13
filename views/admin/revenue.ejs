@@ -1,0 +1,125 @@
+<%- include('../partials/head', { title }) %>
+<%- include('../partials/sidebar-admin', { user, active: 'revenue' }) %>
+
+<div class="main">
+  <div class="topbar">
+    <button class="hamburger" onclick="toggleSidebar()">☰</button>
+    <h2>💰 Revenue Tracker</h2>
+    <div></div>
+  </div>
+  <div class="content">
+    <!-- Stats -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <span class="stat-icon">📊</span>
+        <div class="stat-label">Pipeline Value</div>
+        <div class="stat-value" style="font-size:24px">$<span data-countup="<%= stats.pipeline %>">0</span></div>
+      </div>
+      <div class="stat-card">
+        <span class="stat-icon">📨</span>
+        <div class="stat-label">Invoiced (Unpaid)</div>
+        <div class="stat-value" style="font-size:24px">$<span data-countup="<%= stats.invoicedNotPaid %>">0</span></div>
+      </div>
+      <div class="stat-card">
+        <span class="stat-icon">💵</span>
+        <div class="stat-label">Paid This Month</div>
+        <div class="stat-value" style="font-size:24px">$<span data-countup="<%= stats.paidThisMonth %>">0</span></div>
+      </div>
+      <div class="stat-card">
+        <span class="stat-icon">🚀</span>
+        <div class="stat-label">Active Projects</div>
+        <div class="stat-value" data-countup="<%= stats.activeProjects %>">0</div>
+      </div>
+    </div>
+
+    <!-- Add Project Form -->
+    <div class="detail-section" style="margin-bottom:24px">
+      <h3>➕ Add Project</h3>
+      <form method="POST" action="/admin/revenue/projects" style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end">
+        <div class="form-group" style="margin-bottom:0;flex:1;min-width:200px">
+          <label>Client</label>
+          <select name="client_id" class="form-control" required>
+            <option value="">Select client...</option>
+            <% clients.forEach(c => { %>
+              <option value="<%= c.id %>"><%= c.company_name %></option>
+            <% }) %>
+          </select>
+        </div>
+        <div class="form-group" style="margin-bottom:0;flex:1;min-width:200px">
+          <label>Project Name</label>
+          <input type="text" name="name" class="form-control" placeholder="e.g. Website Redesign" required>
+        </div>
+        <div class="form-group" style="margin-bottom:0;width:150px">
+          <label>Value ($)</label>
+          <input type="number" name="value" class="form-control" step="0.01" min="0" placeholder="0.00" required>
+        </div>
+        <button type="submit" class="btn btn-primary">Add Project</button>
+      </form>
+    </div>
+
+    <!-- Projects Table -->
+    <div class="card">
+      <div class="card-header">
+        <h3>All Projects</h3>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Client</th>
+            <th>Project</th>
+            <th>Value</th>
+            <th>Status</th>
+            <th>Invoiced</th>
+            <th>Paid</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% projects.forEach(p => {
+            const isInvoiced = p.invoiced === true || p.invoiced === 1;
+            const isPaid = p.paid === true || p.paid === 1;
+          %>
+          <tr>
+            <td><%= p.company_name %></td>
+            <td><%= p.name %></td>
+            <td style="font-weight:600;color:var(--cyan)">$<%= parseFloat(p.value).toLocaleString('en-US', {minimumFractionDigits: 2}) %></td>
+            <td><span class="badge badge-<%= p.status %>"><%= p.status %></span></td>
+            <td>
+              <form method="POST" action="/admin/revenue/projects/<%= p.id %>/status" style="display:inline">
+                <input type="hidden" name="invoiced" value="<%= isInvoiced ? '0' : '1' %>">
+                <button type="submit" class="btn btn-sm" style="background:<%= isInvoiced ? 'rgba(0,212,255,0.15)' : 'rgba(255,255,255,0.05)' %>;color:<%= isInvoiced ? '#00d4ff' : 'var(--text-secondary)' %>;border:1px solid <%= isInvoiced ? 'rgba(0,212,255,0.3)' : 'rgba(255,255,255,0.1)' %>">
+                  <%= isInvoiced ? '✓ Invoiced' : 'Mark Invoiced' %>
+                </button>
+              </form>
+            </td>
+            <td>
+              <form method="POST" action="/admin/revenue/projects/<%= p.id %>/status" style="display:inline">
+                <input type="hidden" name="paid" value="<%= isPaid ? '0' : '1' %>">
+                <button type="submit" class="btn btn-sm" style="background:<%= isPaid ? 'rgba(16,185,129,0.15)' : 'rgba(255,255,255,0.05)' %>;color:<%= isPaid ? '#10b981' : 'var(--text-secondary)' %>;border:1px solid <%= isPaid ? 'rgba(16,185,129,0.3)' : 'rgba(255,255,255,0.1)' %>">
+                  <%= isPaid ? '✓ Paid' : 'Mark Paid' %>
+                </button>
+              </form>
+            </td>
+            <td>
+              <div style="display:flex;gap:4px">
+                <% if (p.status === 'active') { %>
+                <form method="POST" action="/admin/revenue/projects/<%= p.id %>/status" style="display:inline">
+                  <input type="hidden" name="status" value="completed">
+                  <button type="submit" class="btn btn-sm" style="background:rgba(16,185,129,0.1);color:#10b981;border:1px solid rgba(16,185,129,0.2)">Complete</button>
+                </form>
+                <% } %>
+                <button class="btn btn-danger btn-sm" onclick="deleteResource('/admin/revenue/projects/<%= p.id %>', '/admin/revenue')">🗑</button>
+              </div>
+            </td>
+          </tr>
+          <% }) %>
+          <% if (projects.length === 0) { %>
+          <tr><td colspan="7" style="text-align:center;padding:32px;color:var(--text-secondary)">No projects yet. Add your first one above!</td></tr>
+          <% } %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<%- include('../partials/foot') %>

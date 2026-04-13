@@ -5,7 +5,7 @@
   <div class="topbar">
     <button class="hamburger" onclick="toggleSidebar()">☰</button>
     <h2>Clients</h2>
-    <a href="/admin/clients/new" class="btn btn-primary btn-sm">+ New Client</a>
+    <a href="/admin/clients/new" class="btn btn-primary btn-sm">➕ New Client</a>
   </div>
   <div class="content">
     <div class="card">
@@ -21,18 +21,18 @@
         </thead>
         <tbody>
           <% clients.forEach(c => { %>
-          <tr>
+          <tr style="cursor:pointer" onclick="window.location='/admin/clients/<%= c.id %>'">
             <td><a href="/admin/clients/<%= c.id %>"><%= c.company_name %></a></td>
             <td><%= c.name %></td>
-            <td><%= c.email %></td>
+            <td style="color:var(--text-secondary)"><%= c.email %></td>
             <td><%= c.request_count %></td>
-            <td><%= new Date(c.created_at).toLocaleDateString() %></td>
+            <td style="color:var(--text-secondary)"><%= new Date(c.created_at).toLocaleDateString() %></td>
           </tr>
           <% }) %>
           <% if (clients.length === 0) { %>
           <tr><td colspan="5">
             <div class="empty-state">
-              <div class="icon">👥</div>
+              <div class="icon">🏢</div>
               <p>No clients yet. Create your first one!</p>
             </div>
           </td></tr>
