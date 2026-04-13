@@ -80,6 +80,16 @@ router.get('/', async (req, res) => {
     `, [clientId]);
   } catch (e) { /* table might not exist */ }
 
+  // Completed this month
+  let completedThisMonth = 0;
+  try {
+    const ctmQuery = db.type === 'pg'
+      ? `SELECT COUNT(*) as count FROM service_requests WHERE client_id = $1 AND status = 'complete' AND created_at >= date_trunc('month', NOW())`
+      : `SELECT COUNT(*) as count FROM service_requests WHERE client_id = $1 AND status = 'complete' AND created_at >= date('now', 'start of month')`;
+    const ctm = await db.query(ctmQuery, [clientId]);
+    completedThisMonth = parseInt(ctm[0].count) || 0;
+  } catch (e) { /* ignore */ }
+
   res.render('portal/dashboard', {
     title: 'Dashboard',
     user: req.session.user,
@@ -92,7 +102,8 @@ router.get('/', async (req, res) => {
     requests,
     sites,
     pendingEmergencies,
-    accessLevel
+    accessLevel,
+    completedThisMonth
   });
 });
 
@@ -336,6 +347,44 @@ router.post('/requests/:id/upload', upload.single('file'), async (req, res) => {
     );
   }
   res.redirect(`/portal/requests/${req.params.id}`);
+});
+
+// Site-filtered requests (owner/regional only)
+router.get('/sites/:site_id/requests', async (req, res) => {
+  const clientId = req.session.user.clientId;
+  const accessLevel = req.session.user.accessLevel || 'owner';
+
+  if (accessLevel !== 'owner' && accessLevel !== 'regional') {
+    return res.redirect('/portal');
+  }
+
+  const site = await db.get('SELECT * FROM client_sites WHERE id = $1 AND client_id = $2', [req.params.site_id, clientId]);
+  if (!site) return res.redirect('/portal');
+
+  const statusFilter = req.query.status || '';
+  let filterClause = '';
+  const params = [clientId, req.params.site_id];
+  if (statusFilter && ['submitted', 'in_review', 'in_progress', 'complete'].includes(statusFilter)) {
+    filterClause = ' AND sr.status = $3';
+    params.push(statusFilter);
+  }
+
+  const requests = await db.query(`
+    SELECT sr.*, st.name as service_type_name, cs.site_name
+    FROM service_requests sr
+    JOIN service_types st ON sr.service_type_id = st.id
+    LEFT JOIN client_sites cs ON sr.site_id = cs.id
+    WHERE sr.client_id = $1 AND sr.site_id = $2${filterClause}
+    ORDER BY sr.created_at DESC
+  `, params);
+
+  res.render('portal/site-requests', {
+    title: `Site: ${site.site_name}`,
+    user: req.session.user,
+    site,
+    requests,
+    statusFilter
+  });
 });
 
 module.exports = router;

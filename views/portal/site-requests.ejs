@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %> — Vivid Views</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #050d1a;
+      --card-bg: rgba(255,255,255,0.04);
+      --card-border: rgba(255,255,255,0.08);
+      --cyan: #00d4ff;
+      --purple: #7c3aed;
+      --gradient: linear-gradient(135deg, #00d4ff, #7c3aed);
+      --text: #f0f6ff;
+      --text-secondary: #64748b;
+      --sidebar-bg: rgba(5,13,26,0.95);
+      --sidebar-border: rgba(255,255,255,0.06);
+      --row-sep: rgba(255,255,255,0.04);
+      --hover-row: rgba(0,212,255,0.04);
+      --glow: 0 0 30px rgba(0,212,255,0.08);
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-image:
+        linear-gradient(rgba(0,212,255,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,212,255,0.03) 1px, transparent 1px);
+      background-size: 50px 50px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .sidebar {
+      width: 260px;
+      background: var(--sidebar-bg);
+      backdrop-filter: blur(20px);
+      border-right: 1px solid var(--sidebar-border);
+      min-height: 100vh;
+      position: fixed;
+      top: 0; left: 0;
+      z-index: 100;
+      display: flex;
+      flex-direction: column;
+      transition: transform 0.3s ease;
+    }
+
+    .sidebar-brand {
+      padding: 24px 20px;
+      border-bottom: 1px solid var(--sidebar-border);
+      display: flex; align-items: center; gap: 12px;
+    }
+
+    .sidebar-monogram {
+      width: 40px; height: 40px;
+      background: var(--gradient);
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 800; font-size: 16px; color: #fff;
+      box-shadow: 0 0 20px rgba(0,212,255,0.3);
+    }
+
+    .sidebar-brand-text h1 { font-size: 18px; font-weight: 700; color: var(--text); letter-spacing: -0.5px; }
+    .sidebar-brand-text small { display: block; font-size: 11px; color: var(--cyan); text-transform: uppercase; letter-spacing: 1px; margin-top: 2px; }
+
+    .sidebar-nav { flex: 1; padding: 16px 12px; }
+    .sidebar-nav a {
+      display: flex; align-items: center; gap: 12px;
+      padding: 10px 12px; color: var(--text-secondary); text-decoration: none;
+      border-radius: 8px; font-size: 14px; font-weight: 500;
+      transition: all 0.2s; margin-bottom: 2px;
+      border-left: 3px solid transparent;
+    }
+    .sidebar-nav a:hover { background: rgba(0,212,255,0.05); color: var(--text); }
+    .sidebar-nav a.active { background: rgba(0,212,255,0.08); color: var(--cyan); border-left-color: var(--cyan); }
+    .sidebar-nav .nav-icon { width: 20px; text-align: center; font-size: 16px; }
+
+    .sidebar-footer {
+      padding: 16px 20px; border-top: 1px solid var(--sidebar-border);
+      display: flex; align-items: center; gap: 12px;
+    }
+    .user-avatar {
+      width: 36px; height: 36px; border-radius: 50%;
+      background: var(--gradient); display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 14px; color: #fff; flex-shrink: 0;
+    }
+    .sidebar-footer .user-info { flex: 1; min-width: 0; }
+    .sidebar-footer .user-info strong { color: var(--text); display: block; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .sidebar-footer .user-info span { font-size: 11px; color: var(--text-secondary); }
+    .btn-logout {
+      background: none; border: 1px solid rgba(255,255,255,0.1);
+      color: var(--text-secondary); padding: 6px 12px; border-radius: 6px;
+      cursor: pointer; font-size: 12px; transition: all 0.2s; font-family: inherit;
+    }
+    .btn-logout:hover { background: rgba(255,255,255,0.05); color: var(--text); border-color: rgba(255,255,255,0.2); }
+
+    .main { margin-left: 260px; flex: 1; min-height: 100vh; position: relative; z-index: 1; }
+
+    .topbar {
+      background: rgba(5,13,26,0.8); backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--card-border);
+      padding: 16px 32px; display: flex; align-items: center; justify-content: space-between;
+    }
+    .topbar h2 { font-size: 20px; font-weight: 600; color: var(--text); }
+
+    .content { padding: 32px; }
+
+    .hamburger { display: none; background: none; border: none; font-size: 24px; cursor: pointer; color: var(--text); }
+
+    .card {
+      background: var(--card-bg); backdrop-filter: blur(20px);
+      border-radius: 12px; border: 1px solid var(--card-border);
+      overflow: hidden; margin-bottom: 24px; box-shadow: var(--glow);
+    }
+    .card-header {
+      padding: 16px 20px; border-bottom: 1px solid var(--card-border);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .card-header h3 { font-size: 16px; font-weight: 600; color: var(--text); }
+
+    table { width: 100%; border-collapse: collapse; }
+    th {
+      text-align: left; padding: 12px 16px; font-size: 11px; font-weight: 600;
+      color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px;
+      background: rgba(255,255,255,0.02); border-bottom: 1px solid var(--row-sep);
+    }
+    td { padding: 12px 16px; font-size: 14px; border-bottom: 1px solid var(--row-sep); color: var(--text); }
+    tr:hover td { background: var(--hover-row); }
+    td a { color: var(--cyan); text-decoration: none; font-weight: 500; }
+    td a:hover { text-decoration: underline; text-shadow: 0 0 8px rgba(0,212,255,0.3); }
+
+    .badge { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+    .badge-submitted { background: rgba(100,116,139,0.2); color: #94a3b8; }
+    .badge-in_review { background: rgba(245,158,11,0.2); color: #fbbf24; }
+    .badge-in_progress { background: rgba(0,212,255,0.15); color: #00d4ff; }
+    .badge-complete { background: rgba(16,185,129,0.2); color: #10b981; }
+    .badge-low { background: rgba(16,185,129,0.2); color: #10b981; }
+    .badge-medium { background: rgba(245,158,11,0.2); color: #fbbf24; }
+    .badge-high { background: rgba(249,115,22,0.2); color: #fb923c; }
+    .badge-urgent { background: rgba(239,68,68,0.2); color: #ef4444; animation: pulse-red 2s infinite; }
+    @keyframes pulse-red { 0%, 100% { box-shadow: 0 0 8px rgba(239,68,68,0.2); } 50% { box-shadow: 0 0 16px rgba(239,68,68,0.4); } }
+
+    .btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 10px 20px; border-radius: 8px; font-size: 14px; font-weight: 600;
+      text-decoration: none; border: none; cursor: pointer;
+      transition: all 0.2s; font-family: inherit;
+    }
+    .btn:hover { transform: translateY(-1px); }
+    .btn-secondary {
+      background: var(--card-bg); color: var(--cyan);
+      border: 1px solid rgba(0,212,255,0.3);
+    }
+    .btn-secondary:hover { background: rgba(0,212,255,0.08); border-color: var(--cyan); }
+    .btn-sm { padding: 6px 12px; font-size: 13px; }
+
+    .filter-bar {
+      display: flex; gap: 12px; flex-wrap: wrap;
+      padding: 16px 20px; background: rgba(255,255,255,0.02);
+      border-bottom: 1px solid var(--card-border);
+    }
+    .filter-bar select {
+      padding: 8px 32px 8px 12px; border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px; font-size: 13px; font-family: inherit;
+      background: rgba(255,255,255,0.05); color: var(--text);
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2364748b' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat; background-position: right 10px center;
+    }
+    .filter-bar select option { background: #0a1628; color: var(--text); }
+
+    .empty-state { text-align: center; padding: 48px 20px; color: var(--text-secondary); }
+    .empty-state .icon { font-size: 48px; margin-bottom: 12px; }
+    .empty-state p { font-size: 16px; }
+
+    @media (max-width: 768px) {
+      .sidebar { transform: translateX(-100%); }
+      .sidebar.open { transform: translateX(0); }
+      .main { margin-left: 0; }
+      .hamburger { display: block; }
+      .content { padding: 16px; }
+      table { font-size: 13px; }
+      th, td { padding: 8px 10px; }
+    }
+
+    .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 99; }
+    .overlay.active { display: block; }
+  </style>
+</head>
+<body>
+<div class="overlay" id="overlay" onclick="toggleSidebar()"></div>
+
+<nav class="sidebar">
+  <div class="sidebar-brand">
+    <div class="sidebar-monogram">VV</div>
+    <div class="sidebar-brand-text">
+      <h1>Vivid Views</h1>
+      <small>Client Portal</small>
+    </div>
+  </div>
+  <div class="sidebar-nav">
+    <a href="/portal"><span class="nav-icon">📊</span> Dashboard</a>
+    <a href="/portal/requests/new"><span class="nav-icon">➕</span> New Request</a>
+    <a href="/portal/files"><span class="nav-icon">🔒</span> File Vault</a>
+  </div>
+  <div class="sidebar-footer">
+    <div class="user-avatar"><%= user.name ? user.name.charAt(0).toUpperCase() : 'C' %></div>
+    <div class="user-info">
+      <strong><%= user.name %></strong>
+      <span><%= user.companyName %></span>
+    </div>
+    <form method="POST" action="/auth/logout" style="margin:0">
+      <button type="submit" class="btn-logout">↗</button>
+    </form>
+  </div>
+</nav>
+
+<div class="main">
+  <div class="topbar">
+    <button class="hamburger" onclick="toggleSidebar()">☰</button>
+    <h2 style="display:flex;align-items:center;gap:12px">
+      📍 Site: <%= site.site_name %>
+    </h2>
+    <a href="/portal" class="btn btn-secondary btn-sm">← Back to Dashboard</a>
+  </div>
+  <div class="content">
+    <!-- Site Info -->
+    <div style="background:var(--card-bg);border:1px solid var(--card-border);border-radius:12px;padding:16px 20px;margin-bottom:24px;display:flex;align-items:center;gap:16px">
+      <span style="font-size:32px">🏢</span>
+      <div>
+        <h3 style="color:var(--text);font-size:18px;font-weight:700"><%= site.site_name %></h3>
+        <p style="color:var(--text-secondary);font-size:13px"><%= [site.address, site.city, site.state, site.zip].filter(Boolean).join(', ') || 'No address on file' %></p>
+      </div>
+    </div>
+
+    <!-- Requests Table -->
+    <div class="card">
+      <div class="card-header">
+        <h3>Service Requests (<%= requests.length %>)</h3>
+      </div>
+      <div class="filter-bar">
+        <select id="statusFilter" onchange="filterStatus()">
+          <option value="">All Statuses</option>
+          <option value="submitted" <%= statusFilter === 'submitted' ? 'selected' : '' %>>Submitted</option>
+          <option value="in_review" <%= statusFilter === 'in_review' ? 'selected' : '' %>>In Review</option>
+          <option value="in_progress" <%= statusFilter === 'in_progress' ? 'selected' : '' %>>In Progress</option>
+          <option value="complete" <%= statusFilter === 'complete' ? 'selected' : '' %>>Complete</option>
+        </select>
+      </div>
+      <% if (requests.length > 0) { %>
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Service Type</th>
+            <th>Description</th>
+            <th>Urgency</th>
+            <th>Status</th>
+            <th>Created</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% requests.forEach(r => { %>
+          <tr style="cursor:pointer" onclick="window.location='/portal/requests/<%= r.id %>'">
+            <td><a href="/portal/requests/<%= r.id %>">#<%= r.id %></a></td>
+            <td>
+              <% if (r.is_emergency === true || r.is_emergency === 1) { %><span style="color:#ef4444">🚨</span> <% } %>
+              <%= r.service_type_name %>
+            </td>
+            <td style="max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><%= r.description %></td>
+            <td><span class="badge badge-<%= r.urgency %>"><%= r.urgency %></span></td>
+            <td><span class="badge badge-<%= r.status %>"><%= r.status.replace(/_/g, ' ') %></span></td>
+            <td style="color:var(--text-secondary);white-space:nowrap"><%= new Date(r.created_at).toLocaleDateString() %></td>
+          </tr>
+          <% }) %>
+        </tbody>
+      </table>
+      <% } else { %>
+        <div class="empty-state">
+          <div class="icon">📭</div>
+          <p>No requests found<%= statusFilter ? ' with status "' + statusFilter.replace(/_/g, ' ') + '"' : '' %></p>
+        </div>
+      <% } %>
+    </div>
+  </div>
+</div>
+
+<script>
+function filterStatus() {
+  const status = document.getElementById('statusFilter').value;
+  const url = new URL(window.location);
+  if (status) {
+    url.searchParams.set('status', status);
+  } else {
+    url.searchParams.delete('status');
+  }
+  window.location.href = url.pathname + url.search;
+}
+
+function toggleSidebar() {
+  document.querySelector('.sidebar').classList.toggle('open');
+  document.getElementById('overlay').classList.toggle('active');
+}
+</script>
+</body>
+</html>

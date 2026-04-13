@@ -582,7 +582,7 @@
       <% if (completed.length > 0) { %>
       <table>
         <thead>
-          <tr><th>Client</th><th>Site</th><th>Request</th><th>Employee</th><th>Completed</th></tr>
+          <tr><th>Client</th><th>Site</th><th>Request</th><th>Employee</th><th>Total</th><th>Invoice</th><th>Completed</th></tr>
         </thead>
         <tbody>
           <% completed.forEach(e => { %>
@@ -591,6 +591,18 @@
             <td><%= e.site_name || '—' %></td>
             <td><a href="/admin/requests/<%= e.request_id %>">#<%= e.request_id %></a></td>
             <td><%= e.employee_name || '—' %></td>
+            <td style="font-weight:600;color:var(--cyan)">$<%= (e.calculated_total || 0).toFixed(2) %></td>
+            <td>
+              <% if (e.invoice_sent_at) { %>
+                <span style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:999px;font-size:12px;font-weight:600;background:rgba(16,185,129,0.15);color:#10b981;box-shadow:0 0 8px rgba(16,185,129,0.15)">
+                  ✓ Sent <%= new Date(e.invoice_sent_at).toLocaleDateString() %>
+                </span>
+              <% } else { %>
+                <form method="POST" action="/admin/emergency/<%= e.id %>/invoice/send" style="display:inline">
+                  <button type="submit" class="btn btn-primary btn-sm" style="white-space:nowrap">📧 Send Invoice</button>
+                </form>
+              <% } %>
+            </td>
             <td style="color:var(--text-secondary)"><%= new Date(e.created_at).toLocaleString() %></td>
           </tr>
           <% }) %>

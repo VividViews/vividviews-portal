@@ -842,17 +842,38 @@ router.get('/emergency', async (req, res) => {
   const completed = await db.query(`
     SELECT er.*, sr.description,
       c.company_name, st.name as service_type_name, cs.site_name,
-      sr.id as request_id, emp.name as employee_name
+      sr.id as request_id, emp.name as employee_name,
+      ei.id as invoice_id, ei.total_amount as invoice_total, ei.sent_at as invoice_sent_at
     FROM emergency_requests er
     JOIN service_requests sr ON er.service_request_id = sr.id
     JOIN clients c ON sr.client_id = c.id
     JOIN service_types st ON sr.service_type_id = st.id
     LEFT JOIN client_sites cs ON sr.site_id = cs.id
     LEFT JOIN employees emp ON er.dispatched_employee_id = emp.id
+    LEFT JOIN emergency_invoices ei ON ei.emergency_request_id = er.id
     WHERE er.status = 'complete'
     ORDER BY er.created_at DESC
     LIMIT 20
   `);
+
+  // Calculate totals for completed emergencies that don't have an invoice yet
+  for (const e of completed) {
+    if (!e.invoice_total && e.invoice_total !== 0) {
+      const timeLogs = await db.query('SELECT * FROM emergency_time_logs WHERE emergency_request_id = $1', [e.id]);
+      let totalMinutes = 0;
+      for (const log of timeLogs) totalMinutes += log.total_minutes || 0;
+      const totalHours = totalMinutes / 60;
+      const employee = e.dispatched_employee_id
+        ? await db.get('SELECT hourly_rate FROM employees WHERE id = $1', [e.dispatched_employee_id])
+        : null;
+      const hourlyRate = employee ? parseFloat(employee.hourly_rate) || 0 : 0;
+      const laborCost = totalHours * hourlyRate;
+      const baseFee = parseFloat(e.base_fee) || 0;
+      e.calculated_total = baseFee + laborCost;
+    } else {
+      e.calculated_total = parseFloat(e.invoice_total) || 0;
+    }
+  }
 
   const employees = await db.query("SELECT id, name, role_name FROM employees WHERE status = 'active' ORDER BY name");
 
@@ -916,6 +937,108 @@ router.post('/emergency/:eid/complete', async (req, res) => {
   }
 
   res.redirect('/admin/emergency');
+});
+
+// ============ Send Emergency Invoice ============
+
+router.post('/emergency/:eid/invoice/send', async (req, res) => {
+  try {
+    const er = await db.get('SELECT * FROM emergency_requests WHERE id = $1', [req.params.eid]);
+    if (!er) return res.redirect('/admin/emergency');
+
+    const sr = await db.get(`
+      SELECT sr.*, st.name as service_type_name, cs.site_name, cs.address as site_address,
+        cs.city as site_city, cs.state as site_state, cs.zip as site_zip
+      FROM service_requests sr
+      JOIN service_types st ON sr.service_type_id = st.id
+      LEFT JOIN client_sites cs ON sr.site_id = cs.id
+      WHERE sr.id = $1
+    `, [er.service_request_id]);
+    if (!sr) return res.redirect('/admin/emergency');
+
+    const client = await db.get('SELECT * FROM clients WHERE id = $1', [sr.client_id]);
+    const clientUser = await db.get('SELECT email, name FROM users WHERE id = $1', [client.user_id]);
+
+    // Calculate invoice
+    const timeLogs = await db.query('SELECT * FROM emergency_time_logs WHERE emergency_request_id = $1', [req.params.eid]);
+    let totalMinutes = 0;
+    for (const log of timeLogs) totalMinutes += log.total_minutes || 0;
+    const totalHours = totalMinutes / 60;
+    const employee = er.dispatched_employee_id
+      ? await db.get('SELECT * FROM employees WHERE id = $1', [er.dispatched_employee_id])
+      : null;
+    const hourlyRate = employee ? parseFloat(employee.hourly_rate) || 0 : 0;
+    const laborCost = totalHours * hourlyRate;
+    const baseFee = parseFloat(er.base_fee) || 0;
+    const totalAmount = baseFee + laborCost;
+
+    // Upsert emergency_invoices
+    const existingInvoice = await db.get('SELECT id FROM emergency_invoices WHERE emergency_request_id = $1', [req.params.eid]);
+    if (existingInvoice) {
+      await db.run(
+        'UPDATE emergency_invoices SET base_fee = $1, hourly_rate = $2, total_hours = $3, labor_cost = $4, total_amount = $5, sent_at = CURRENT_TIMESTAMP WHERE id = $6',
+        [baseFee, hourlyRate, totalHours, laborCost, totalAmount, existingInvoice.id]
+      );
+    } else {
+      await db.run(
+        'INSERT INTO emergency_invoices (emergency_request_id, base_fee, hourly_rate, total_hours, labor_cost, total_amount, sent_at) VALUES ($1, $2, $3, $4, $5, $6, CURRENT_TIMESTAMP)',
+        [req.params.eid, baseFee, hourlyRate, totalHours, laborCost, totalAmount]
+      );
+    }
+
+    // Send email if SMTP configured
+    if (process.env.SMTP_HOST && process.env.SMTP_USER && clientUser && clientUser.email) {
+      const nodemailer = require('nodemailer');
+      const transporter = nodemailer.createTransport({
+        host: process.env.SMTP_HOST,
+        port: parseInt(process.env.SMTP_PORT || '587'),
+        secure: false,
+        auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS }
+      });
+
+      const siteInfo = sr.site_name
+        ? `<p><strong>Site:</strong> ${sr.site_name}</p><p><strong>Address:</strong> ${[sr.site_address, sr.site_city, sr.site_state, sr.site_zip].filter(Boolean).join(', ')}</p>`
+        : '';
+
+      await transporter.sendMail({
+        from: process.env.SMTP_FROM || 'noreply@vividviews.co',
+        to: clientUser.email,
+        subject: `Emergency Invoice — Request #${sr.id} — $${totalAmount.toFixed(2)}`,
+        html: `
+          <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; background: #050d1a; color: #f0f6ff; padding: 40px; border-radius: 12px;">
+            <h1 style="color: #00d4ff; margin-bottom: 8px;">Vivid Views</h1>
+            <p style="color: #64748b; margin-bottom: 32px;">Emergency Service Invoice</p>
+            <h2 style="color: #f0f6ff;">Invoice Summary</h2>
+            <p>Hi ${clientUser.name || client.company_name},</p>
+            ${siteInfo}
+            <p><strong>Service:</strong> ${sr.service_type_name}</p>
+            <p><strong>Description:</strong> ${sr.description}</p>
+            <hr style="border-color: rgba(255,255,255,0.1); margin: 24px 0;">
+            <table style="width: 100%; border-collapse: collapse; color: #f0f6ff;">
+              <tr><td style="padding: 8px 0;">Base Fee</td><td style="text-align: right; padding: 8px 0;">$${baseFee.toFixed(2)}</td></tr>
+              <tr><td style="padding: 8px 0;">Hours Worked</td><td style="text-align: right; padding: 8px 0;">${totalHours.toFixed(2)} hrs</td></tr>
+              <tr><td style="padding: 8px 0;">Hourly Rate</td><td style="text-align: right; padding: 8px 0;">$${hourlyRate.toFixed(2)}/hr</td></tr>
+              <tr><td style="padding: 8px 0;">Labor Cost</td><td style="text-align: right; padding: 8px 0;">$${laborCost.toFixed(2)}</td></tr>
+              <tr style="border-top: 2px solid rgba(0,212,255,0.3);"><td style="padding: 12px 0; font-weight: bold; font-size: 18px;">Total</td><td style="text-align: right; padding: 12px 0; font-weight: bold; font-size: 18px; color: #00d4ff;">$${totalAmount.toFixed(2)}</td></tr>
+            </table>
+            <hr style="border-color: rgba(255,255,255,0.1); margin: 24px 0;">
+            <p style="color: #64748b; font-size: 14px; text-align: center;">Thank you for your business 🙏</p>
+          </div>
+        `
+      });
+    }
+
+    // Add comment
+    await db.run(
+      'INSERT INTO request_comments (service_request_id, author_name, author_role, comment, comment_type) VALUES ($1, $2, $3, $4, $5)',
+      [er.service_request_id, 'Admin', 'admin', `📧 Emergency invoice sent to client — Total: $${totalAmount.toFixed(2)}`, 'status_change']
+    );
+
+    res.redirect('/admin/emergency');
+  } catch (err) {
+    console.error('Send invoice error:', err);
+    res.redirect('/admin/emergency');
+  }
 });
 
 // ============ Inventory Management ============

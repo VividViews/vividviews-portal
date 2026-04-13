@@ -419,6 +419,190 @@
     <a href="/portal/requests/new" class="btn btn-primary btn-sm">➕ New Request</a>
   </div>
   <div class="content">
+
+  <% if (accessLevel === 'owner' || accessLevel === 'regional') { %>
+    <!-- ========== REGIONAL MANAGER DASHBOARD ========== -->
+    <style>
+      .regional-header {
+        background: var(--gradient); border-radius: 12px; padding: 24px 32px; margin-bottom: 32px;
+        position: relative; overflow: hidden;
+      }
+      .sites-grid {
+        display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 32px;
+      }
+      .site-card {
+        background: var(--card-bg); backdrop-filter: blur(20px);
+        border-radius: 12px; border: 1px solid var(--card-border);
+        padding: 20px; cursor: pointer; transition: all 0.2s;
+        text-decoration: none; display: block; position: relative;
+        box-shadow: var(--glow);
+      }
+      .site-card:hover { transform: translateY(-2px); border-color: rgba(0,212,255,0.3); box-shadow: 0 0 30px rgba(0,212,255,0.12); }
+      .site-card-green { border-left: 4px solid #10b981; }
+      .site-card-amber { border-left: 4px solid #fbbf24; }
+      .site-card-red { border-left: 4px solid #ef4444; }
+      .emergency-alert-card {
+        background: rgba(239,68,68,0.06); border: 1px solid rgba(239,68,68,0.25);
+        border-radius: 12px; padding: 20px; margin-bottom: 32px;
+        box-shadow: 0 0 30px rgba(239,68,68,0.08);
+        animation: emergency-glow 3s ease-in-out infinite;
+      }
+      @keyframes emergency-glow {
+        0%, 100% { box-shadow: 0 0 20px rgba(239,68,68,0.08); }
+        50% { box-shadow: 0 0 40px rgba(239,68,68,0.18); }
+      }
+      .activity-row {
+        display: flex; align-items: center; gap: 16px; padding: 12px 16px;
+        border-bottom: 1px solid var(--row-sep); cursor: pointer; transition: all 0.15s;
+      }
+      .activity-row:hover { background: var(--hover-row); }
+      .activity-row:last-child { border-bottom: none; }
+      @media (max-width: 768px) {
+        .sites-grid { grid-template-columns: 1fr; }
+      }
+    </style>
+
+    <div class="regional-header">
+      <div style="position:relative;z-index:1">
+        <h2 style="color:#fff;font-size:24px;font-weight:700;margin-bottom:4px">Regional Overview — <%= user.companyName %></h2>
+        <p style="color:rgba(255,255,255,0.7);font-size:14px">Multi-site management dashboard</p>
+      </div>
+      <div style="position:absolute;right:32px;top:50%;transform:translateY(-50%);font-size:64px;opacity:0.15">🌐</div>
+    </div>
+
+    <!-- Stats Row -->
+    <%
+      var totalSites = sites ? sites.length : 0;
+      var openRequests = parseInt(stats.submitted) + parseInt(stats.inReview);
+      var inProgressCount = parseInt(stats.inProgress);
+      var completedMonth = typeof completedThisMonth !== 'undefined' ? completedThisMonth : parseInt(stats.complete);
+    %>
+    <div class="stats-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:32px">
+      <div class="stat-card">
+        <span class="stat-icon">🏢</span>
+        <div class="stat-label">Total Sites</div>
+        <div class="stat-value" data-countup="<%= totalSites %>">0</div>
+      </div>
+      <div class="stat-card">
+        <span class="stat-icon">📥</span>
+        <div class="stat-label">Open Requests</div>
+        <div class="stat-value" data-countup="<%= openRequests %>">0</div>
+      </div>
+      <div class="stat-card">
+        <span class="stat-icon">⚡</span>
+        <div class="stat-label">In Progress</div>
+        <div class="stat-value" data-countup="<%= inProgressCount %>">0</div>
+      </div>
+      <div class="stat-card">
+        <span class="stat-icon">✅</span>
+        <div class="stat-label">Completed This Month</div>
+        <div class="stat-value" data-countup="<%= completedMonth %>">0</div>
+      </div>
+    </div>
+
+    <!-- Emergency Alerts -->
+    <% if (pendingEmergencies && pendingEmergencies.length > 0) { %>
+    <div class="emergency-alert-card">
+      <h3 style="color:#ef4444;margin-bottom:12px;display:flex;align-items:center;gap:8px">
+        ⚠️ <%= pendingEmergencies.length %> Emergency Request<%= pendingEmergencies.length > 1 ? 's' : '' %> Pending Approval
+      </h3>
+      <% pendingEmergencies.forEach(em => { %>
+      <div style="display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid rgba(239,68,68,0.1)">
+        <span style="font-size:18px">🚨</span>
+        <div style="flex:1">
+          <strong style="color:var(--text)"><%= em.site_name || 'No site' %></strong>
+          <span style="color:var(--text-secondary);font-size:13px;margin-left:8px"><%= em.description ? em.description.substring(0, 60) : '' %><%= em.description && em.description.length > 60 ? '...' : '' %></span>
+        </div>
+        <span style="color:var(--text-secondary);font-size:12px"><%= new Date(em.created_at).toLocaleString() %></span>
+      </div>
+      <% }) %>
+      <p style="color:var(--text-secondary);font-size:12px;margin-top:12px">🔔 Notifications sent to admin for approval</p>
+    </div>
+    <% } %>
+
+    <!-- Sites Grid -->
+    <% if (sites && sites.length > 0) { %>
+    <h3 style="color:var(--text);margin-bottom:16px;font-size:16px">🏢 Sites</h3>
+    <div class="sites-grid">
+      <% sites.forEach(s => {
+        var openCount = parseInt(s.open_count) || 0;
+        var colorClass = openCount === 0 ? 'site-card-green' : (openCount <= 2 ? 'site-card-amber' : 'site-card-red');
+        var badgeBg = openCount === 0 ? 'rgba(16,185,129,0.2)' : (openCount <= 2 ? 'rgba(245,158,11,0.2)' : 'rgba(239,68,68,0.2)');
+        var badgeColor = openCount === 0 ? '#10b981' : (openCount <= 2 ? '#fbbf24' : '#ef4444');
+      %>
+      <a href="/portal/sites/<%= s.id %>/requests" class="site-card <%= colorClass %>">
+        <div style="font-size:18px;font-weight:700;color:var(--text);margin-bottom:4px"><%= s.site_name %></div>
+        <div style="font-size:13px;color:var(--text-secondary);margin-bottom:12px"><%= [s.address, s.city, s.state].filter(Boolean).join(', ') || 'No address' %></div>
+        <div style="display:flex;align-items:center;gap:12px">
+          <span style="display:inline-block;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:600;background:<%= badgeBg %>;color:<%= badgeColor %>">
+            <%= openCount %> open
+          </span>
+          <%
+            var inProgSite = requests.filter(function(r) { return r.site_id == s.id && r.status === 'in_progress'; }).length;
+          %>
+          <% if (inProgSite > 0) { %>
+          <span style="display:inline-block;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:600;background:rgba(0,212,255,0.15);color:#00d4ff">
+            <%= inProgSite %> in progress
+          </span>
+          <% } %>
+        </div>
+      </a>
+      <% }) %>
+    </div>
+    <% } %>
+
+    <!-- Recent Activity -->
+    <div class="card">
+      <div class="card-header">
+        <h3>📊 Recent Activity</h3>
+      </div>
+      <%
+        var recentRequests = requests.slice(0, 10);
+      %>
+      <% if (recentRequests.length > 0) { %>
+      <div>
+        <% recentRequests.forEach(r => {
+          var daysOpen = Math.floor((Date.now() - new Date(r.created_at).getTime()) / (1000 * 60 * 60 * 24));
+          var isEmergency = r.is_emergency === true || r.is_emergency === 1;
+        %>
+        <div class="activity-row" onclick="window.location='/portal/requests/<%= r.id %>'">
+          <div style="flex:1">
+            <span style="font-weight:600;color:var(--text)">
+              <% if (isEmergency) { %><span style="color:#ef4444">🚨</span> <% } %>
+              <%= r.service_type_name %>
+            </span>
+            <% if (r.site_name) { %>
+              <span style="color:var(--text-secondary);font-size:13px;margin-left:8px">📍 <%= r.site_name %></span>
+            <% } %>
+          </div>
+          <span class="badge badge-<%= r.status %>"><%= r.status.replace(/_/g, ' ') %></span>
+          <span style="color:var(--text-secondary);font-size:12px;min-width:60px;text-align:right"><%= daysOpen %>d ago</span>
+          <span class="badge badge-<%= r.urgency %>" style="font-size:10px;padding:2px 6px"><%= r.urgency %></span>
+        </div>
+        <% }) %>
+      </div>
+      <% } else { %>
+        <div class="empty-state" style="padding:32px"><p>No requests yet</p></div>
+      <% } %>
+    </div>
+
+    <!-- Quick Links -->
+    <div class="stats-grid" style="grid-template-columns:repeat(auto-fit, minmax(180px, 1fr))">
+      <a href="/portal/requests/new" class="stat-card" style="text-decoration:none;cursor:pointer;transition:all 0.2s" onmouseover="this.style.borderColor='rgba(0,212,255,0.3)'" onmouseout="this.style.borderColor=''">
+        <span class="stat-icon">➕</span>
+        <div class="stat-label">New Request</div>
+        <div style="font-size:14px;color:var(--cyan);margin-top:4px">Submit a request →</div>
+      </a>
+      <a href="/portal/files" class="stat-card" style="text-decoration:none;cursor:pointer;transition:all 0.2s" onmouseover="this.style.borderColor='rgba(0,212,255,0.3)'" onmouseout="this.style.borderColor=''">
+        <span class="stat-icon">🔒</span>
+        <div class="stat-label">File Vault</div>
+        <div style="font-size:14px;color:var(--cyan);margin-top:4px">View files →</div>
+      </a>
+    </div>
+
+  <% } else { %>
+    <!-- ========== STANDARD SITE-LEVEL VIEW ========== -->
+
     <!-- Welcome Banner -->
     <div style="background:var(--gradient);border-radius:12px;padding:24px 32px;margin-bottom:32px;position:relative;overflow:hidden">
       <div style="position:relative;z-index:1">
@@ -436,21 +620,6 @@
         <strong style="color:#ef4444"><%= pendingEmergencies.length %> Emergency Request<%= pendingEmergencies.length > 1 ? 's' : '' %> Pending</strong>
         <p style="color:var(--text-secondary);font-size:13px;margin-top:2px">Awaiting admin approval and dispatch</p>
       </div>
-    </div>
-    <% } %>
-
-    <% if (accessLevel !== 'site' && sites && sites.length > 0) { %>
-    <!-- Sites Overview (for owner/regional) -->
-    <h3 style="color:var(--text);margin-bottom:16px;font-size:16px">📍 Your Sites</h3>
-    <div class="stats-grid" style="grid-template-columns:repeat(auto-fill, minmax(220px, 1fr));margin-bottom:32px">
-      <% sites.forEach(s => { %>
-      <div class="stat-card" style="cursor:pointer;transition:all 0.2s" onclick="filterBySite(<%= s.id %>)" onmouseover="this.style.borderColor='rgba(0,212,255,0.3)'" onmouseout="this.style.borderColor=''">
-        <span class="stat-icon">📍</span>
-        <div class="stat-label"><%= s.site_name %></div>
-        <div class="stat-value"><%= s.open_count %></div>
-        <div style="font-size:12px;color:var(--text-secondary);margin-top:2px">open requests</div>
-      </div>
-      <% }) %>
     </div>
     <% } %>
 
@@ -524,6 +693,8 @@
         <div style="font-size:14px;color:var(--cyan);margin-top:4px">View files →</div>
       </a>
     </div>
+
+  <% } /* end else site-level */ %>
   </div>
 </div>
 
