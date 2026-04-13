@@ -314,11 +314,24 @@ router.delete('/clients/:id/service-types/:stid', async (req, res) => {
 // ============ Client Sites ============
 
 router.post('/clients/:id/sites', async (req, res) => {
-  const { site_name, address, city, state, zip, site_manager_name, site_manager_phone, site_manager_email } = req.body;
-  await db.run(
-    'INSERT INTO client_sites (client_id, site_name, address, city, state, zip, site_manager_name, site_manager_phone, site_manager_email) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)',
+  const { site_name, address, city, state, zip, site_manager_name, site_manager_phone, site_manager_email, login_name, login_email, login_password } = req.body;
+  const site = await db.get(
+    'INSERT INTO client_sites (client_id, site_name, address, city, state, zip, site_manager_name, site_manager_phone, site_manager_email) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id',
     [req.params.id, site_name, address || '', city || '', state || '', zip || '', site_manager_name || '', site_manager_phone || '', site_manager_email || '']
   );
+  // If login credentials provided, create a site-level user account
+  if (login_email && login_email.trim() && login_password && login_password.trim().length >= 6) {
+    try {
+      const hash = await bcrypt.hash(login_password.trim(), 10);
+      await db.get(
+        "INSERT INTO users (name, email, password_hash, role, access_level, site_id) VALUES ($1, $2, $3, 'client', 'site', $4) RETURNING id",
+        [login_name || site_name, login_email.trim(), hash, site.id]
+      );
+    } catch (err) {
+      console.error('Site user creation error:', err.message);
+      // Site was created, just user creation failed — redirect anyway
+    }
+  }
   res.redirect(`/admin/clients/${req.params.id}`);
 });
 
