@@ -4,85 +4,162 @@
 <div class="main">
   <div class="topbar">
     <button class="hamburger" onclick="toggleSidebar()">☰</button>
-    <h2>Request #<%= request.id %></h2>
-    <a href="/portal" class="btn btn-secondary btn-sm">← Back</a>
+    <h2>View Service Request</h2>
+    <div style="display:flex;align-items:center;gap:12px">
+      <span style="font-size:13px;color:var(--gray-400)">Portal &rsaquo; <a href="/portal" style="color:var(--gray-500);text-decoration:none">My Requests</a> &rsaquo; Ticket #<%= String(request.id).padStart(6, '0') %></span>
+      <a href="/portal" class="btn btn-secondary btn-sm">← Back</a>
+    </div>
   </div>
   <div class="content">
-    <div class="detail-grid">
-      <div>
-        <!-- Request Details -->
-        <div class="detail-section">
-          <h3>Request Details</h3>
-          <div class="detail-row">
-            <div class="detail-label">Service</div>
-            <div class="detail-value"><%= request.service_type_name %></div>
-          </div>
-          <div class="detail-row">
-            <div class="detail-label">Urgency</div>
-            <div class="detail-value"><span class="badge badge-<%= request.urgency %>"><%= request.urgency %></span></div>
-          </div>
-          <div class="detail-row">
-            <div class="detail-label">Status</div>
-            <div class="detail-value"><span class="badge badge-<%= request.status %>"><%= request.status.replace('_', ' ') %></span></div>
-          </div>
-          <div class="detail-row">
-            <div class="detail-label">Submitted</div>
-            <div class="detail-value"><%= new Date(request.created_at).toLocaleString() %></div>
-          </div>
-          <div class="detail-row">
-            <div class="detail-label">Last Updated</div>
-            <div class="detail-value"><%= new Date(request.updated_at).toLocaleString() %></div>
-          </div>
-        </div>
 
-        <!-- Description -->
-        <div class="detail-section">
-          <h3>Description</h3>
-          <div class="description-text"><%= request.description %></div>
+    <!-- Two-column info grid -->
+    <div class="detail-grid" style="grid-template-columns:1fr 1fr;margin-bottom:24px">
+      <div class="detail-section" style="margin-bottom:0">
+        <h3>Ticket Information</h3>
+        <div class="detail-row">
+          <div class="detail-label">Created</div>
+          <div class="detail-value"><%= new Date(request.created_at).toLocaleString() %></div>
         </div>
-
-        <!-- Attachments -->
-        <% if (attachments.length > 0) { %>
-        <div class="detail-section">
-          <h3>Attachments</h3>
-          <ul class="file-list">
-            <% attachments.forEach(a => { %>
-            <li><a href="/uploads/<%= a.filename %>" target="_blank">📎 <%= a.original_name %></a></li>
-            <% }) %>
-          </ul>
+        <div class="detail-row">
+          <div class="detail-label">Ticket #</div>
+          <div class="detail-value" style="font-weight:600;font-family:monospace"><%= String(request.id).padStart(6, '0') %></div>
         </div>
-        <% } %>
+        <div class="detail-row">
+          <div class="detail-label">Service Type</div>
+          <div class="detail-value"><%= request.service_type_name %></div>
+        </div>
+        <div class="detail-row">
+          <div class="detail-label">Urgency</div>
+          <div class="detail-value"><span class="badge badge-<%= request.urgency %>"><%= request.urgency %></span></div>
+        </div>
+        <div class="detail-row">
+          <div class="detail-label">Status</div>
+          <div class="detail-value"><span class="badge badge-<%= request.status %>"><%= request.status.replace('_', ' ') %></span></div>
+        </div>
+        <div class="detail-row">
+          <div class="detail-label">Last Updated</div>
+          <div class="detail-value"><%= new Date(request.updated_at).toLocaleString() %></div>
+        </div>
       </div>
 
-      <div>
-        <% if (request.admin_notes) { %>
-        <div class="detail-section">
-          <h3>Notes from Vivid Views</h3>
-          <div class="description-text"><%= request.admin_notes %></div>
-        </div>
-        <% } %>
+      <div class="detail-section" style="margin-bottom:0">
+        <h3>Description</h3>
+        <div class="description-text"><%= request.description %></div>
 
         <!-- Status Timeline -->
-        <div class="detail-section">
-          <h3>Status</h3>
-          <div style="display:flex;flex-direction:column;gap:12px">
-            <% const statuses = ['submitted', 'in_review', 'in_progress', 'complete'];
-               const currentIdx = statuses.indexOf(request.status);
-               statuses.forEach((s, i) => { %>
-              <div style="display:flex;align-items:center;gap:12px">
-                <div style="width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;
-                  <%= i <= currentIdx ? 'background:var(--blue);color:white' : 'background:var(--gray-200);color:var(--gray-400)' %>">
-                  <%= i <= currentIdx ? '✓' : (i + 1) %>
-                </div>
-                <span style="font-size:14px;font-weight:<%= i === currentIdx ? '600' : '400' %>;color:<%= i <= currentIdx ? 'var(--navy)' : 'var(--gray-400)' %>">
-                  <%= s.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()) %>
-                </span>
+        <h3 style="margin-top:24px">Progress</h3>
+        <div style="display:flex;flex-direction:column;gap:12px;margin-top:12px">
+          <% const statuses = ['submitted', 'in_review', 'in_progress', 'complete'];
+             const currentIdx = statuses.indexOf(request.status);
+             statuses.forEach((s, i) => { %>
+            <div style="display:flex;align-items:center;gap:12px">
+              <div style="width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;
+                <%= i <= currentIdx ? 'background:var(--blue);color:white' : 'background:var(--gray-200);color:var(--gray-400)' %>">
+                <%= i <= currentIdx ? '✓' : (i + 1) %>
               </div>
-            <% }) %>
-          </div>
+              <span style="font-size:14px;font-weight:<%= i === currentIdx ? '600' : '400' %>;color:<%= i <= currentIdx ? 'var(--navy)' : 'var(--gray-400)' %>">
+                <%= s.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()) %>
+              </span>
+            </div>
+          <% }) %>
         </div>
       </div>
     </div>
+
+    <!-- Action buttons row -->
+    <div style="display:flex;gap:12px;margin-bottom:24px;flex-wrap:wrap">
+      <a href="#section-comment" class="btn btn-primary btn-sm">💬 Add Comment</a>
+      <a href="#section-upload" class="btn btn-secondary btn-sm">📎 Upload File</a>
+    </div>
+
+    <!-- Activity Log -->
+    <div class="card" style="margin-bottom:24px">
+      <div class="card-header"><h3>Activity Log</h3></div>
+      <% if (comments.length === 0) { %>
+        <div class="empty-state" style="padding:24px"><p>No activity yet.</p></div>
+      <% } else { %>
+      <table>
+        <thead>
+          <tr>
+            <th>User</th>
+            <th>Comment</th>
+            <th>Type</th>
+            <th>Date</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% comments.forEach(c => {
+            let rowStyle = '';
+            if (c.comment_type === 'system') rowStyle = 'background:#f8fafc;font-style:italic;';
+            else if (c.comment_type === 'status_change') rowStyle = 'background:#eff6ff;';
+            else if (c.comment_type === 'file_upload') rowStyle = 'background:#f0fdf4;';
+          %>
+          <tr style="<%= rowStyle %>">
+            <td style="font-weight:600;white-space:nowrap"><%= c.author_name %></td>
+            <td><%= c.comment %></td>
+            <td><span class="badge badge-<%= c.comment_type === 'system' ? 'submitted' : c.comment_type === 'status_change' ? 'in_progress' : c.comment_type === 'file_upload' ? 'complete' : 'in_review' %>"><%= c.comment_type.replace('_', ' ') %></span></td>
+            <td style="white-space:nowrap"><%= new Date(c.created_at).toLocaleString() %></td>
+          </tr>
+          <% }) %>
+        </tbody>
+      </table>
+      <% } %>
+    </div>
+
+    <!-- Attachments -->
+    <div class="card" style="margin-bottom:24px">
+      <div class="card-header"><h3>Attachments (<%= attachments.length %>)</h3></div>
+      <% if (attachments.length === 0) { %>
+        <div class="empty-state" style="padding:24px"><p>No files attached.</p></div>
+      <% } else { %>
+      <table>
+        <thead>
+          <tr>
+            <th>File</th>
+            <th>Type</th>
+            <th>Uploaded</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% attachments.forEach(a => { %>
+          <tr>
+            <td><a href="/uploads/<%= a.filename %>" target="_blank">📎 <%= a.original_name %></a></td>
+            <td><%= a.mimetype %></td>
+            <td><%= new Date(a.created_at).toLocaleString() %></td>
+            <td><a href="/uploads/<%= a.filename %>" download class="btn btn-secondary btn-sm">Download</a></td>
+          </tr>
+          <% }) %>
+        </tbody>
+      </table>
+      <% } %>
+    </div>
+
+    <!-- Forms section -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px">
+      <!-- Add Comment -->
+      <div class="detail-section" id="section-comment" style="margin-bottom:0">
+        <h3>💬 Add Comment</h3>
+        <form method="POST" action="/portal/requests/<%= request.id %>/comment">
+          <div class="form-group">
+            <textarea name="comment" class="form-control" rows="4" placeholder="Write a comment..." required></textarea>
+          </div>
+          <button type="submit" class="btn btn-primary" style="width:100%">Post Comment</button>
+        </form>
+      </div>
+
+      <!-- Upload File -->
+      <div class="detail-section" id="section-upload" style="margin-bottom:0">
+        <h3>📎 Upload File</h3>
+        <form method="POST" action="/portal/requests/<%= request.id %>/upload" enctype="multipart/form-data">
+          <div class="form-group">
+            <input type="file" name="file" class="form-control" required>
+          </div>
+          <button type="submit" class="btn btn-secondary" style="width:100%">Upload</button>
+        </form>
+      </div>
+    </div>
+
   </div>
 </div>
 

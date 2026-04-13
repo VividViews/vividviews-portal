@@ -89,6 +89,12 @@ router.post('/requests', upload.array('files', 5), async (req, res) => {
       }
     }
 
+    // System comment for new request
+    await db.run(
+      'INSERT INTO request_comments (service_request_id, author_name, author_role, comment, comment_type) VALUES ($1, $2, $3, $4, $5)',
+      [result.lastID, 'System', 'system', `Request submitted by ${req.session.user.name}`, 'system']
+    );
+
     res.redirect('/portal');
   } catch (err) {
     console.error('Submit request error:', err);
@@ -121,12 +127,58 @@ router.get('/requests/:id', async (req, res) => {
     [req.params.id]
   );
 
+  const comments = await db.query(
+    'SELECT * FROM request_comments WHERE service_request_id = $1 ORDER BY created_at ASC',
+    [req.params.id]
+  );
+
   res.render('portal/request-detail', {
     title: `Request #${request.id}`,
     user: req.session.user,
     request,
-    attachments
+    attachments,
+    comments
   });
+});
+
+// Client adds a comment
+router.post('/requests/:id/comment', async (req, res) => {
+  // Verify ownership
+  const request = await db.get(
+    'SELECT id FROM service_requests WHERE id = $1 AND client_id = $2',
+    [req.params.id, req.session.user.clientId]
+  );
+  if (!request) return res.redirect('/portal');
+
+  const { comment } = req.body;
+  if (comment && comment.trim()) {
+    await db.run(
+      'INSERT INTO request_comments (service_request_id, author_name, author_role, comment, comment_type) VALUES ($1, $2, $3, $4, $5)',
+      [req.params.id, req.session.user.name, 'client', comment.trim(), 'comment']
+    );
+  }
+  res.redirect(`/portal/requests/${req.params.id}`);
+});
+
+// Client uploads a file to existing request
+router.post('/requests/:id/upload', upload.single('file'), async (req, res) => {
+  const request = await db.get(
+    'SELECT id FROM service_requests WHERE id = $1 AND client_id = $2',
+    [req.params.id, req.session.user.clientId]
+  );
+  if (!request) return res.redirect('/portal');
+
+  if (req.file) {
+    await db.run(
+      'INSERT INTO attachments (service_request_id, filename, original_name, mimetype) VALUES ($1, $2, $3, $4)',
+      [req.params.id, req.file.filename, req.file.originalname, req.file.mimetype]
+    );
+    await db.run(
+      'INSERT INTO request_comments (service_request_id, author_name, author_role, comment, comment_type) VALUES ($1, $2, $3, $4, $5)',
+      [req.params.id, req.session.user.name, 'client', `File uploaded: ${req.file.originalname}`, 'file_upload']
+    );
+  }
+  res.redirect(`/portal/requests/${req.params.id}`);
 });
 
 module.exports = router;

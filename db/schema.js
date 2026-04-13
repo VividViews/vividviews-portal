@@ -46,6 +46,16 @@ async function migrate() {
         mimetype TEXT NOT NULL,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       );
+
+      CREATE TABLE IF NOT EXISTS request_comments (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        service_request_id INTEGER NOT NULL REFERENCES service_requests(id) ON DELETE CASCADE,
+        author_name TEXT NOT NULL,
+        author_role TEXT NOT NULL,
+        comment TEXT NOT NULL,
+        comment_type TEXT NOT NULL DEFAULT 'comment',
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      );
     `);
   } else {
     await db.exec(`
@@ -90,6 +100,16 @@ async function migrate() {
         filename TEXT NOT NULL,
         original_name TEXT NOT NULL,
         mimetype TEXT NOT NULL,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      );
+
+      CREATE TABLE IF NOT EXISTS request_comments (
+        id SERIAL PRIMARY KEY,
+        service_request_id INTEGER NOT NULL REFERENCES service_requests(id) ON DELETE CASCADE,
+        author_name TEXT NOT NULL,
+        author_role TEXT NOT NULL,
+        comment TEXT NOT NULL,
+        comment_type TEXT NOT NULL DEFAULT 'comment',
         created_at TIMESTAMPTZ DEFAULT NOW()
       );
     `);

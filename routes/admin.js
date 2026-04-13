@@ -1,8 +1,19 @@
 const express = require('express');
 const bcrypt = require('bcrypt');
+const multer = require('multer');
+const path = require('path');
 const db = require('../utils/db');
 const { requireAdmin } = require('../middleware/auth');
 const router = express.Router();
+
+const storage = multer.diskStorage({
+  destination: path.join(__dirname, '..', 'uploads'),
+  filename: (req, file, cb) => {
+    const unique = Date.now() + '-' + Math.round(Math.random() * 1e9);
+    cb(null, unique + path.extname(file.originalname));
+  }
+});
+const upload = multer({ storage, limits: { fileSize: 10 * 1024 * 1024 } });
 
 router.use(requireAdmin);
 
@@ -174,9 +185,10 @@ router.get('/requests', async (req, res) => {
 // Request detail
 router.get('/requests/:id', async (req, res) => {
   const request = await db.get(`
-    SELECT sr.*, c.company_name, st.name as service_type_name
+    SELECT sr.*, c.company_name, u.name as contact_name, st.name as service_type_name
     FROM service_requests sr
     JOIN clients c ON sr.client_id = c.id
+    JOIN users u ON c.user_id = u.id
     JOIN service_types st ON sr.service_type_id = st.id
     WHERE sr.id = $1
   `, [req.params.id]);
@@ -187,11 +199,17 @@ router.get('/requests/:id', async (req, res) => {
     [req.params.id]
   );
 
+  const comments = await db.query(
+    'SELECT * FROM request_comments WHERE service_request_id = $1 ORDER BY created_at ASC',
+    [req.params.id]
+  );
+
   res.render('admin/request-detail', {
     title: `Request #${request.id}`,
     user: req.session.user,
     request,
-    attachments
+    attachments,
+    comments
   });
 });
 
@@ -202,6 +220,39 @@ router.post('/requests/:id/status', async (req, res) => {
     'UPDATE service_requests SET status = $1, admin_notes = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3',
     [status, admin_notes, req.params.id]
   );
+  let commentText = `Status changed to ${status.replace('_', ' ')}`;
+  if (admin_notes) commentText += ` — ${admin_notes}`;
+  await db.run(
+    'INSERT INTO request_comments (service_request_id, author_name, author_role, comment, comment_type) VALUES ($1, $2, $3, $4, $5)',
+    [req.params.id, 'Admin', 'admin', commentText, 'status_change']
+  );
+  res.redirect(`/admin/requests/${req.params.id}`);
+});
+
+// Add comment
+router.post('/requests/:id/comment', async (req, res) => {
+  const { comment } = req.body;
+  if (comment && comment.trim()) {
+    await db.run(
+      'INSERT INTO request_comments (service_request_id, author_name, author_role, comment, comment_type) VALUES ($1, $2, $3, $4, $5)',
+      [req.params.id, 'Admin', 'admin', comment.trim(), 'comment']
+    );
+  }
+  res.redirect(`/admin/requests/${req.params.id}`);
+});
+
+// Upload file to existing request
+router.post('/requests/:id/upload', upload.single('file'), async (req, res) => {
+  if (req.file) {
+    await db.run(
+      'INSERT INTO attachments (service_request_id, filename, original_name, mimetype) VALUES ($1, $2, $3, $4)',
+      [req.params.id, req.file.filename, req.file.originalname, req.file.mimetype]
+    );
+    await db.run(
+      'INSERT INTO request_comments (service_request_id, author_name, author_role, comment, comment_type) VALUES ($1, $2, $3, $4, $5)',
+      [req.params.id, 'Admin', 'admin', `File uploaded: ${req.file.originalname}`, 'file_upload']
+    );
+  }
   res.redirect(`/admin/requests/${req.params.id}`);
 });
 
