@@ -192,11 +192,14 @@ router.get('/clients/:id', async (req, res) => {
     clientTypes,
     error: null
   };
-  // Debug: check for problematic keys
-  for (const key of Object.keys(renderData)) {
-    if (key === 'include') console.error('WARNING: data contains key "include"!');
+  try {
+    res.render('admin/client-detail', renderData);
+  } catch(renderErr) {
+    console.error('[RENDER ERROR client-detail]', renderErr.message);
+    console.error('[RENDER DATA KEYS]', Object.keys(renderData));
+    console.error('[STACK]', renderErr.stack);
+    res.status(500).send('<pre>' + renderErr.message + '</pre>');
   }
-  res.render('admin/client-detail', renderData);
 });
 
 // Edit client form

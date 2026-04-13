@@ -10,6 +10,9 @@ const PORT = process.env.PORT || 3000;
 // View engine
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
+app.set('view options', { rmWhitespace: false });
+const ejs = require('ejs');
+ejs.cache.reset(); // clear any stale cache on startup
 
 // Body parsing
 app.use(express.urlencoded({ extended: true }));
