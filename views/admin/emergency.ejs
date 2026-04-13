@@ -385,7 +385,7 @@
 <body>
 <div class="overlay" id="overlay" onclick="toggleSidebar()"></div>
 
-<% var active = 'emergency'; var stats = { pendingEmergencies: pending.length }; %>
+<% var navActive = 'emergency'; var stats = { pendingEmergencies: pending.length }; %>
 <nav class="sidebar">
   <div class="sidebar-brand">
     <div class="sidebar-monogram">VV</div>
@@ -395,18 +395,18 @@
     </div>
   </div>
   <div class="sidebar-nav">
-    <a href="/admin" class="<%= active === 'dashboard' ? 'active' : '' %>"><span class="nav-icon">📊</span> Dashboard</a>
-    <a href="/admin/clients" class="<%= active === 'clients' ? 'active' : '' %>"><span class="nav-icon">🏢</span> Clients</a>
-    <a href="/admin/requests" class="<%= active === 'requests' ? 'active' : '' %>"><span class="nav-icon">📋</span> Requests</a>
-    <a href="/admin/employees" class="<%= active === 'employees' ? 'active' : '' %>"><span class="nav-icon">👥</span> Employees</a>
-    <a href="/admin/emergency" class="<%= active === 'emergency' ? 'active' : '' %>" style="position:relative">
+    <a href="/admin" class="<%= navActive === 'dashboard' ? 'active' : '' %>"><span class="nav-icon">📊</span> Dashboard</a>
+    <a href="/admin/clients" class="<%= navActive === 'clients' ? 'active' : '' %>"><span class="nav-icon">🏢</span> Clients</a>
+    <a href="/admin/requests" class="<%= navActive === 'requests' ? 'active' : '' %>"><span class="nav-icon">📋</span> Requests</a>
+    <a href="/admin/employees" class="<%= navActive === 'employees' ? 'active' : '' %>"><span class="nav-icon">👥</span> Employees</a>
+    <a href="/admin/emergency" class="<%= navActive === 'emergency' ? 'active' : '' %>" style="position:relative">
       <span class="nav-icon">⚠️</span> Emergency
       <% if (typeof stats !== 'undefined' && stats && stats.pendingEmergencies > 0) { %>
         <span style="position:absolute;right:12px;top:50%;transform:translateY(-50%);width:8px;height:8px;border-radius:50%;background:#ef4444;box-shadow:0 0 8px rgba(239,68,68,0.6);animation:pulse-red 2s infinite"></span>
       <% } %>
     </a>
-    <a href="/admin/revenue" class="<%= active === 'revenue' ? 'active' : '' %>"><span class="nav-icon">💰</span> Revenue</a>
-    <a href="/admin/settings" class="<%= active === 'settings' ? 'active' : '' %>"><span class="nav-icon">⚙️</span> Settings</a>
+    <a href="/admin/revenue" class="<%= navActive === 'revenue' ? 'active' : '' %>"><span class="nav-icon">💰</span> Revenue</a>
+    <a href="/admin/settings" class="<%= navActive === 'settings' ? 'active' : '' %>"><span class="nav-icon">⚙️</span> Settings</a>
   </div>
   <div class="sidebar-footer">
     <div class="user-avatar"><%= user.name ? user.name.charAt(0).toUpperCase() : 'A' %></div>
