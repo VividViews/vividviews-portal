@@ -69,6 +69,7 @@ router.get('/clients/new', (req, res) => {
     clientUser: null,
     serviceTypes: [],
     requests: [],
+    brands: [],
     error: null
   });
 });
@@ -77,14 +78,15 @@ router.get('/clients/new', (req, res) => {
 router.post('/clients', async (req, res) => {
   const { name, email, password, company_name } = req.body;
   try {
+    const { client_type } = req.body;
     const hash = await bcrypt.hash(password, 10);
-    const userResult = await db.run(
-      'INSERT INTO users (name, email, password_hash, role) VALUES ($1, $2, $3, $4)',
+    const userResult = await db.get(
+      'INSERT INTO users (name, email, password_hash, role) VALUES ($1, $2, $3, $4) RETURNING id',
       [name, email, hash, 'client']
     );
-    await db.run(
-      'INSERT INTO clients (user_id, company_name) VALUES ($1, $2)',
-      [userResult.lastID, company_name]
+    await db.get(
+      'INSERT INTO clients (user_id, company_name, client_type) VALUES ($1, $2, $3) RETURNING id',
+      [userResult.id, company_name, client_type || 'standard']
     );
     res.redirect('/admin/clients');
   } catch (err) {
@@ -96,6 +98,7 @@ router.post('/clients', async (req, res) => {
       clientUser: null,
       serviceTypes: [],
       requests: [],
+      brands: [],
       error: err.message.includes('UNIQUE') ? 'Email already exists' : 'Failed to create client'
     });
   }
@@ -116,6 +119,12 @@ router.get('/clients/:id', async (req, res) => {
     ORDER BY sr.created_at DESC
   `, [client.id]);
 
+  // Fetch car wash brands and sites
+  const brands = await db.query('SELECT * FROM carwash_brands WHERE client_id = $1 ORDER BY brand_name', [client.id]);
+  for (const brand of brands) {
+    brand.sites = await db.query('SELECT * FROM carwash_sites WHERE brand_id = $1 ORDER BY site_name', [brand.id]);
+  }
+
   res.render('admin/client-detail', {
     title: client.company_name,
     user: req.session.user,
@@ -123,6 +132,7 @@ router.get('/clients/:id', async (req, res) => {
     clientUser,
     serviceTypes,
     requests,
+    brands,
     error: null
   });
 });
@@ -254,6 +264,67 @@ router.post('/requests/:id/upload', upload.single('file'), async (req, res) => {
     );
   }
   res.redirect(`/admin/requests/${req.params.id}`);
+});
+
+// ============ Car Wash Brands & Sites ============
+
+// List brands for a client
+router.get('/clients/:id/brands', async (req, res) => {
+  const brands = await db.query('SELECT * FROM carwash_brands WHERE client_id = $1 ORDER BY brand_name', [req.params.id]);
+  for (const brand of brands) {
+    brand.sites = await db.query('SELECT * FROM carwash_sites WHERE brand_id = $1 ORDER BY site_name', [brand.id]);
+  }
+  res.json(brands);
+});
+
+// Create brand
+router.post('/clients/:id/brands', async (req, res) => {
+  const { brand_name } = req.body;
+  await db.get(
+    'INSERT INTO carwash_brands (client_id, brand_name) VALUES ($1, $2) RETURNING id',
+    [req.params.id, brand_name]
+  );
+  res.redirect(`/admin/clients/${req.params.id}`);
+});
+
+// Brand detail with sites
+router.get('/clients/:id/brands/:bid', async (req, res) => {
+  const brand = await db.get('SELECT * FROM carwash_brands WHERE id = $1 AND client_id = $2', [req.params.bid, req.params.id]);
+  if (!brand) return res.redirect(`/admin/clients/${req.params.id}`);
+  brand.sites = await db.query('SELECT * FROM carwash_sites WHERE brand_id = $1 ORDER BY site_name', [brand.id]);
+  res.json(brand);
+});
+
+// Create site
+router.post('/clients/:id/brands/:bid/sites', async (req, res) => {
+  const { site_name, address, city, state } = req.body;
+  await db.get(
+    'INSERT INTO carwash_sites (brand_id, site_name, address, city, state) VALUES ($1, $2, $3, $4, $5) RETURNING id',
+    [req.params.bid, site_name, address || '', city || '', state || '']
+  );
+  res.redirect(`/admin/clients/${req.params.id}`);
+});
+
+// Toggle site status
+router.post('/clients/:id/brands/:bid/sites/:sid/status', async (req, res) => {
+  const site = await db.get('SELECT * FROM carwash_sites WHERE id = $1', [req.params.sid]);
+  if (site) {
+    const newStatus = site.status === 'active' ? 'inactive' : 'active';
+    await db.run('UPDATE carwash_sites SET status = $1 WHERE id = $2', [newStatus, req.params.sid]);
+  }
+  res.redirect(`/admin/clients/${req.params.id}`);
+});
+
+// Delete brand
+router.delete('/clients/:id/brands/:bid', async (req, res) => {
+  await db.run('DELETE FROM carwash_brands WHERE id = $1 AND client_id = $2', [req.params.bid, req.params.id]);
+  res.json({ ok: true });
+});
+
+// Delete site
+router.delete('/clients/:id/brands/:bid/sites/:sid', async (req, res) => {
+  await db.run('DELETE FROM carwash_sites WHERE id = $1 AND brand_id = $2', [req.params.sid, req.params.bid]);
+  res.json({ ok: true });
 });
 
 module.exports = router;

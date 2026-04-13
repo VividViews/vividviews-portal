@@ -16,6 +16,26 @@ async function migrate() {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         user_id INTEGER NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
         company_name TEXT NOT NULL,
+        client_type TEXT NOT NULL DEFAULT 'standard',
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE TABLE IF NOT EXISTS carwash_brands (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        client_id INTEGER NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+        brand_name TEXT NOT NULL,
+        logo_url TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE TABLE IF NOT EXISTS carwash_sites (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        brand_id INTEGER NOT NULL REFERENCES carwash_brands(id) ON DELETE CASCADE,
+        site_name TEXT NOT NULL,
+        address TEXT,
+        city TEXT,
+        state TEXT,
+        status TEXT NOT NULL DEFAULT 'active',
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       );
 
@@ -72,6 +92,26 @@ async function migrate() {
         id SERIAL PRIMARY KEY,
         user_id INTEGER NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
         company_name TEXT NOT NULL,
+        client_type TEXT NOT NULL DEFAULT 'standard',
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      );
+
+      CREATE TABLE IF NOT EXISTS carwash_brands (
+        id SERIAL PRIMARY KEY,
+        client_id INTEGER NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+        brand_name TEXT NOT NULL,
+        logo_url TEXT,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      );
+
+      CREATE TABLE IF NOT EXISTS carwash_sites (
+        id SERIAL PRIMARY KEY,
+        brand_id INTEGER NOT NULL REFERENCES carwash_brands(id) ON DELETE CASCADE,
+        site_name TEXT NOT NULL,
+        address TEXT,
+        city TEXT,
+        state TEXT,
+        status TEXT NOT NULL DEFAULT 'active',
         created_at TIMESTAMPTZ DEFAULT NOW()
       );
 
@@ -123,6 +163,13 @@ async function migrate() {
       CREATE INDEX IF NOT EXISTS IDX_session_expire ON session (expire);
     `);
   }
+  // Add client_type column to existing databases
+  if (db.type === 'pg') {
+    try {
+      await db.exec("ALTER TABLE clients ADD COLUMN IF NOT EXISTS client_type TEXT NOT NULL DEFAULT 'standard'");
+    } catch (e) { /* column may already exist */ }
+  }
+
   console.log('✅ Database migrations complete');
 }
 

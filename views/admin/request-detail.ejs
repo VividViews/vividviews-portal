@@ -67,31 +67,29 @@
       <% if (comments.length === 0) { %>
         <div class="empty-state" style="padding:24px"><p>No activity yet.</p></div>
       <% } else { %>
-      <table>
-        <thead>
-          <tr>
-            <th>User</th>
-            <th>Comment</th>
-            <th>Type</th>
-            <th>Date</th>
-          </tr>
-        </thead>
-        <tbody>
-          <% comments.forEach(c => {
-            let rowStyle = '';
-            if (c.comment_type === 'system') rowStyle = 'background:#f8fafc;font-style:italic;';
-            else if (c.comment_type === 'status_change') rowStyle = 'background:#eff6ff;';
-            else if (c.comment_type === 'file_upload') rowStyle = 'background:#f0fdf4;';
-          %>
-          <tr style="<%= rowStyle %>">
-            <td style="font-weight:600;white-space:nowrap"><%= c.author_name %></td>
-            <td><%= c.comment %></td>
-            <td><span class="badge badge-<%= c.comment_type === 'system' ? 'submitted' : c.comment_type === 'status_change' ? 'in_progress' : c.comment_type === 'file_upload' ? 'complete' : 'in_review' %>"><%= c.comment_type.replace('_', ' ') %></span></td>
-            <td style="white-space:nowrap"><%= new Date(c.created_at).toLocaleString() %></td>
-          </tr>
-          <% }) %>
-        </tbody>
-      </table>
+      <div style="padding:16px;display:flex;flex-direction:column;gap:12px">
+        <% comments.forEach(c => {
+          const isAdmin = c.author_role === 'admin';
+          const borderColor = isAdmin ? '#1e3a5f' : '#64748b';
+          const labelColor = isAdmin ? '#1e3a5f' : '#475569';
+          const label = isAdmin ? 'Admin (You)' : c.author_name;
+          let bgColor = '#fff';
+          if (c.comment_type === 'status_change') bgColor = '#eff6ff';
+          else if (c.comment_type === 'file_upload') bgColor = '#f0fdf4';
+          else if (c.comment_type === 'system') bgColor = '#f8fafc';
+        %>
+        <div style="border-left:4px solid <%= borderColor %>;padding:12px 16px;background:<%= bgColor %>;border-radius:4px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+            <strong style="color:<%= labelColor %>"><%= label %></strong>
+            <span style="font-size:12px;color:var(--gray-400)"><%= new Date(c.created_at).toLocaleString() %></span>
+          </div>
+          <div style="color:var(--gray-700);<%= c.comment_type === 'system' ? 'font-style:italic;' : '' %>"><%= c.comment %></div>
+          <% if (c.comment_type !== 'comment') { %>
+            <span class="badge badge-<%= c.comment_type === 'status_change' ? 'in_progress' : c.comment_type === 'file_upload' ? 'complete' : 'submitted' %>" style="margin-top:6px;display:inline-block"><%= c.comment_type.replace('_', ' ') %></span>
+          <% } %>
+        </div>
+        <% }) %>
+      </div>
       <% } %>
     </div>
 

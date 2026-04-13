@@ -37,6 +37,13 @@
             <label>Password</label>
             <input type="password" name="password" class="form-control" required minlength="6">
           </div>
+          <div class="form-group">
+            <label>Client Type</label>
+            <select name="client_type" class="form-control">
+              <option value="standard">Standard</option>
+              <option value="carwash">Car Wash</option>
+            </select>
+          </div>
           <button type="submit" class="btn btn-primary">Create Client</button>
           <a href="/admin/clients" class="btn btn-secondary" style="margin-left:8px">Cancel</a>
         </form>
@@ -58,6 +65,10 @@
             <div class="detail-row">
               <div class="detail-label">Email</div>
               <div class="detail-value"><%= clientUser.email %></div>
+            </div>
+            <div class="detail-row">
+              <div class="detail-label">Type</div>
+              <div class="detail-value"><span class="badge" style="background:<%= client.client_type === 'carwash' ? 'var(--blue)' : 'var(--gray-300)' %>;color:<%= client.client_type === 'carwash' ? 'white' : 'var(--gray-700)' %>"><%= client.client_type === 'carwash' ? 'Car Wash' : 'Standard' %></span></div>
             </div>
             <div class="detail-row">
               <div class="detail-label">Joined</div>
@@ -82,7 +93,7 @@
               </thead>
               <tbody>
                 <% requests.forEach(r => { %>
-                <tr>
+                <tr style="cursor:pointer" onclick="window.location='/admin/requests/<%= r.id %>'">
                   <td><a href="/admin/requests/<%= r.id %>">#<%= r.id %></a></td>
                   <td><%= r.service_type_name %></td>
                   <td><span class="badge badge-<%= r.urgency %>"><%= r.urgency %></span></td>
@@ -117,6 +128,73 @@
               <input type="text" name="name" placeholder="Add service type..." required>
               <button type="submit" class="btn btn-primary btn-sm">Add</button>
             </form>
+          </div>
+
+          <!-- Car Wash Brands & Sites -->
+          <div class="detail-section" style="margin-top:24px">
+            <h3>🚗 Car Wash Brands & Sites</h3>
+            <% if (!brands || brands.length === 0) { %>
+              <p style="color:var(--gray-400);font-size:14px;margin-bottom:12px">No brands yet</p>
+            <% } else { %>
+              <% brands.forEach(brand => { %>
+                <div style="border:1px solid var(--gray-200);border-radius:8px;padding:16px;margin-bottom:16px">
+                  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+                    <h4 style="margin:0;color:var(--navy)"><%= brand.brand_name %></h4>
+                    <button class="btn btn-danger btn-sm" onclick="deleteResource('/admin/clients/<%= client.id %>/brands/<%= brand.id %>', '/admin/clients/<%= client.id %>')">Delete Brand</button>
+                  </div>
+                  <% if (brand.sites && brand.sites.length > 0) { %>
+                  <table style="margin-bottom:12px">
+                    <thead>
+                      <tr>
+                        <th>Site Name</th>
+                        <th>Address</th>
+                        <th>City</th>
+                        <th>State</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <% brand.sites.forEach(site => { %>
+                      <tr>
+                        <td><%= site.site_name %></td>
+                        <td><%= site.address || '—' %></td>
+                        <td><%= site.city || '—' %></td>
+                        <td><%= site.state || '—' %></td>
+                        <td><span class="badge badge-<%= site.status === 'active' ? 'complete' : 'submitted' %>"><%= site.status %></span></td>
+                        <td style="white-space:nowrap">
+                          <form method="POST" action="/admin/clients/<%= client.id %>/brands/<%= brand.id %>/sites/<%= site.id %>/status" style="display:inline">
+                            <button type="submit" class="btn btn-secondary btn-sm" title="Toggle status"><%= site.status === 'active' ? '⏸ Deactivate' : '▶ Activate' %></button>
+                          </form>
+                          <button class="btn btn-danger btn-sm" onclick="deleteResource('/admin/clients/<%= client.id %>/brands/<%= brand.id %>/sites/<%= site.id %>', '/admin/clients/<%= client.id %>')">Delete</button>
+                        </td>
+                      </tr>
+                      <% }) %>
+                    </tbody>
+                  </table>
+                  <% } else { %>
+                    <p style="color:var(--gray-400);font-size:13px;margin-bottom:12px">No sites yet</p>
+                  <% } %>
+                  <details style="margin-top:8px">
+                    <summary style="cursor:pointer;color:var(--blue);font-size:14px">+ Add Site</summary>
+                    <form method="POST" action="/admin/clients/<%= client.id %>/brands/<%= brand.id %>/sites" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+                      <input type="text" name="site_name" placeholder="Site name" required style="flex:1;min-width:140px">
+                      <input type="text" name="address" placeholder="Address" style="flex:1;min-width:140px">
+                      <input type="text" name="city" placeholder="City" style="width:120px">
+                      <input type="text" name="state" placeholder="State" style="width:60px">
+                      <button type="submit" class="btn btn-primary btn-sm">Add Site</button>
+                    </form>
+                  </details>
+                </div>
+              <% }) %>
+            <% } %>
+            <details style="margin-top:8px">
+              <summary style="cursor:pointer;color:var(--blue);font-weight:600">+ Add Brand</summary>
+              <form method="POST" action="/admin/clients/<%= client.id %>/brands" class="inline-form" style="margin-top:8px">
+                <input type="text" name="brand_name" placeholder="Brand name..." required>
+                <button type="submit" class="btn btn-primary btn-sm">Add Brand</button>
+              </form>
+            </details>
           </div>
         </div>
       </div>

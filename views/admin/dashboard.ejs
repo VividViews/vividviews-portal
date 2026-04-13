@@ -49,7 +49,7 @@
         </thead>
         <tbody>
           <% recentRequests.forEach(r => { %>
-          <tr>
+          <tr style="cursor:pointer" onclick="window.location='/admin/requests/<%= r.id %>'">
             <td><a href="/admin/requests/<%= r.id %>">#<%= r.id %></a></td>
             <td><%= r.company_name %></td>
             <td><%= r.service_type_name %></td>
