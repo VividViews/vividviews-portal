@@ -1,0 +1,20 @@
+<nav class="sidebar">
+  <div class="sidebar-brand">
+    <h1>Vivid <span>Views</span></h1>
+    <small>Admin Portal</small>
+  </div>
+  <div class="sidebar-nav">
+    <a href="/admin" class="<%= active === 'dashboard' ? 'active' : '' %>"><span class="nav-icon">📊</span> Dashboard</a>
+    <a href="/admin/clients" class="<%= active === 'clients' ? 'active' : '' %>"><span class="nav-icon">👥</span> Clients</a>
+    <a href="/admin/requests" class="<%= active === 'requests' ? 'active' : '' %>"><span class="nav-icon">📋</span> Requests</a>
+  </div>
+  <div class="sidebar-footer">
+    <div class="user-info">
+      <strong><%= user.name %></strong>
+      <%= user.email %>
+    </div>
+    <form method="POST" action="/auth/logout">
+      <button type="submit" class="btn-logout">Sign out</button>
+    </form>
+  </div>
+</nav>

@@ -1,0 +1,70 @@
+<%- include('../partials/head', { title }) %>
+<%- include('../partials/sidebar-client', { user, active: 'dashboard' }) %>
+
+<div class="main">
+  <div class="topbar">
+    <button class="hamburger" onclick="toggleSidebar()">☰</button>
+    <h2>Welcome, <%= user.companyName %></h2>
+    <a href="/portal/requests/new" class="btn btn-primary btn-sm">+ New Request</a>
+  </div>
+  <div class="content">
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-label">Submitted</div>
+        <div class="stat-value"><%= stats.submitted %></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">In Review</div>
+        <div class="stat-value"><%= stats.inReview %></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">In Progress</div>
+        <div class="stat-value"><%= stats.inProgress %></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Complete</div>
+        <div class="stat-value"><%= stats.complete %></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <h3>Your Requests</h3>
+        <a href="/portal/requests/new" class="btn btn-primary btn-sm">+ New Request</a>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Service</th>
+            <th>Urgency</th>
+            <th>Status</th>
+            <th>Date</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% requests.forEach(r => { %>
+          <tr>
+            <td><a href="/portal/requests/<%= r.id %>">#<%= r.id %></a></td>
+            <td><%= r.service_type_name %></td>
+            <td><span class="badge badge-<%= r.urgency %>"><%= r.urgency %></span></td>
+            <td><span class="badge badge-<%= r.status %>"><%= r.status.replace('_', ' ') %></span></td>
+            <td><%= new Date(r.created_at).toLocaleDateString() %></td>
+          </tr>
+          <% }) %>
+          <% if (requests.length === 0) { %>
+          <tr><td colspan="5">
+            <div class="empty-state">
+              <div class="icon">📋</div>
+              <p>No requests yet. Submit your first one!</p>
+              <a href="/portal/requests/new" class="btn btn-primary" style="margin-top:16px">New Request</a>
+            </div>
+          </td></tr>
+          <% } %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<%- include('../partials/foot') %>

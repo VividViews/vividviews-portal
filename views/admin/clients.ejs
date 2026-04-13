@@ -1,0 +1,46 @@
+<%- include('../partials/head', { title }) %>
+<%- include('../partials/sidebar-admin', { user, active: 'clients' }) %>
+
+<div class="main">
+  <div class="topbar">
+    <button class="hamburger" onclick="toggleSidebar()">☰</button>
+    <h2>Clients</h2>
+    <a href="/admin/clients/new" class="btn btn-primary btn-sm">+ New Client</a>
+  </div>
+  <div class="content">
+    <div class="card">
+      <table>
+        <thead>
+          <tr>
+            <th>Company</th>
+            <th>Contact</th>
+            <th>Email</th>
+            <th>Requests</th>
+            <th>Joined</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% clients.forEach(c => { %>
+          <tr>
+            <td><a href="/admin/clients/<%= c.id %>"><%= c.company_name %></a></td>
+            <td><%= c.name %></td>
+            <td><%= c.email %></td>
+            <td><%= c.request_count %></td>
+            <td><%= new Date(c.created_at).toLocaleDateString() %></td>
+          </tr>
+          <% }) %>
+          <% if (clients.length === 0) { %>
+          <tr><td colspan="5">
+            <div class="empty-state">
+              <div class="icon">👥</div>
+              <p>No clients yet. Create your first one!</p>
+            </div>
+          </td></tr>
+          <% } %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<%- include('../partials/foot') %>

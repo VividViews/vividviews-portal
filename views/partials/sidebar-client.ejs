@@ -1,0 +1,19 @@
+<nav class="sidebar">
+  <div class="sidebar-brand">
+    <h1>Vivid <span>Views</span></h1>
+    <small>Client Portal</small>
+  </div>
+  <div class="sidebar-nav">
+    <a href="/portal" class="<%= active === 'dashboard' ? 'active' : '' %>"><span class="nav-icon">📊</span> Dashboard</a>
+    <a href="/portal/requests/new" class="<%= active === 'new-request' ? 'active' : '' %>"><span class="nav-icon">➕</span> New Request</a>
+  </div>
+  <div class="sidebar-footer">
+    <div class="user-info">
+      <strong><%= user.name %></strong>
+      <%= user.companyName %>
+    </div>
+    <form method="POST" action="/auth/logout">
+      <button type="submit" class="btn-logout">Sign out</button>
+    </form>
+  </div>
+</nav>

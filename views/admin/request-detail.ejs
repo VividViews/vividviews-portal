@@ -1,0 +1,87 @@
+<%- include('../partials/head', { title }) %>
+<%- include('../partials/sidebar-admin', { user, active: 'requests' }) %>
+
+<div class="main">
+  <div class="topbar">
+    <button class="hamburger" onclick="toggleSidebar()">☰</button>
+    <h2>Request #<%= request.id %></h2>
+    <a href="/admin/requests" class="btn btn-secondary btn-sm">← Back</a>
+  </div>
+  <div class="content">
+    <div class="detail-grid">
+      <div>
+        <!-- Request Details -->
+        <div class="detail-section">
+          <h3>Request Details</h3>
+          <div class="detail-row">
+            <div class="detail-label">Client</div>
+            <div class="detail-value"><%= request.company_name %></div>
+          </div>
+          <div class="detail-row">
+            <div class="detail-label">Service</div>
+            <div class="detail-value"><%= request.service_type_name %></div>
+          </div>
+          <div class="detail-row">
+            <div class="detail-label">Urgency</div>
+            <div class="detail-value"><span class="badge badge-<%= request.urgency %>"><%= request.urgency %></span></div>
+          </div>
+          <div class="detail-row">
+            <div class="detail-label">Status</div>
+            <div class="detail-value"><span class="badge badge-<%= request.status %>"><%= request.status.replace('_', ' ') %></span></div>
+          </div>
+          <div class="detail-row">
+            <div class="detail-label">Submitted</div>
+            <div class="detail-value"><%= new Date(request.created_at).toLocaleString() %></div>
+          </div>
+          <div class="detail-row">
+            <div class="detail-label">Updated</div>
+            <div class="detail-value"><%= new Date(request.updated_at).toLocaleString() %></div>
+          </div>
+        </div>
+
+        <!-- Description -->
+        <div class="detail-section">
+          <h3>Description</h3>
+          <div class="description-text"><%= request.description %></div>
+        </div>
+
+        <!-- Attachments -->
+        <% if (attachments.length > 0) { %>
+        <div class="detail-section">
+          <h3>Attachments (<%= attachments.length %>)</h3>
+          <ul class="file-list">
+            <% attachments.forEach(a => { %>
+            <li><a href="/uploads/<%= a.filename %>" target="_blank">📎 <%= a.original_name %></a></li>
+            <% }) %>
+          </ul>
+        </div>
+        <% } %>
+      </div>
+
+      <div>
+        <!-- Update Status -->
+        <div class="detail-section">
+          <h3>Update Status</h3>
+          <form method="POST" action="/admin/requests/<%= request.id %>/status">
+            <div class="form-group">
+              <label>Status</label>
+              <select name="status" class="form-control">
+                <option value="submitted" <%= request.status === 'submitted' ? 'selected' : '' %>>Submitted</option>
+                <option value="in_review" <%= request.status === 'in_review' ? 'selected' : '' %>>In Review</option>
+                <option value="in_progress" <%= request.status === 'in_progress' ? 'selected' : '' %>>In Progress</option>
+                <option value="complete" <%= request.status === 'complete' ? 'selected' : '' %>>Complete</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Admin Notes</label>
+              <textarea name="admin_notes" class="form-control" rows="4"><%= request.admin_notes || '' %></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary" style="width:100%">Update</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<%- include('../partials/foot') %>

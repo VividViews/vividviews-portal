@@ -1,0 +1,89 @@
+<%- include('../partials/head', { title }) %>
+<%- include('../partials/sidebar-client', { user, active: 'dashboard' }) %>
+
+<div class="main">
+  <div class="topbar">
+    <button class="hamburger" onclick="toggleSidebar()">☰</button>
+    <h2>Request #<%= request.id %></h2>
+    <a href="/portal" class="btn btn-secondary btn-sm">← Back</a>
+  </div>
+  <div class="content">
+    <div class="detail-grid">
+      <div>
+        <!-- Request Details -->
+        <div class="detail-section">
+          <h3>Request Details</h3>
+          <div class="detail-row">
+            <div class="detail-label">Service</div>
+            <div class="detail-value"><%= request.service_type_name %></div>
+          </div>
+          <div class="detail-row">
+            <div class="detail-label">Urgency</div>
+            <div class="detail-value"><span class="badge badge-<%= request.urgency %>"><%= request.urgency %></span></div>
+          </div>
+          <div class="detail-row">
+            <div class="detail-label">Status</div>
+            <div class="detail-value"><span class="badge badge-<%= request.status %>"><%= request.status.replace('_', ' ') %></span></div>
+          </div>
+          <div class="detail-row">
+            <div class="detail-label">Submitted</div>
+            <div class="detail-value"><%= new Date(request.created_at).toLocaleString() %></div>
+          </div>
+          <div class="detail-row">
+            <div class="detail-label">Last Updated</div>
+            <div class="detail-value"><%= new Date(request.updated_at).toLocaleString() %></div>
+          </div>
+        </div>
+
+        <!-- Description -->
+        <div class="detail-section">
+          <h3>Description</h3>
+          <div class="description-text"><%= request.description %></div>
+        </div>
+
+        <!-- Attachments -->
+        <% if (attachments.length > 0) { %>
+        <div class="detail-section">
+          <h3>Attachments</h3>
+          <ul class="file-list">
+            <% attachments.forEach(a => { %>
+            <li><a href="/uploads/<%= a.filename %>" target="_blank">📎 <%= a.original_name %></a></li>
+            <% }) %>
+          </ul>
+        </div>
+        <% } %>
+      </div>
+
+      <div>
+        <% if (request.admin_notes) { %>
+        <div class="detail-section">
+          <h3>Notes from Vivid Views</h3>
+          <div class="description-text"><%= request.admin_notes %></div>
+        </div>
+        <% } %>
+
+        <!-- Status Timeline -->
+        <div class="detail-section">
+          <h3>Status</h3>
+          <div style="display:flex;flex-direction:column;gap:12px">
+            <% const statuses = ['submitted', 'in_review', 'in_progress', 'complete'];
+               const currentIdx = statuses.indexOf(request.status);
+               statuses.forEach((s, i) => { %>
+              <div style="display:flex;align-items:center;gap:12px">
+                <div style="width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;
+                  <%= i <= currentIdx ? 'background:var(--blue);color:white' : 'background:var(--gray-200);color:var(--gray-400)' %>">
+                  <%= i <= currentIdx ? '✓' : (i + 1) %>
+                </div>
+                <span style="font-size:14px;font-weight:<%= i === currentIdx ? '600' : '400' %>;color:<%= i <= currentIdx ? 'var(--navy)' : 'var(--gray-400)' %>">
+                  <%= s.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()) %>
+                </span>
+              </div>
+            <% }) %>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<%- include('../partials/foot') %>

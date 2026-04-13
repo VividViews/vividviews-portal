@@ -1,0 +1,70 @@
+<%- include('../partials/head', { title }) %>
+<%- include('../partials/sidebar-admin', { user, active: 'dashboard' }) %>
+
+<div class="main">
+  <div class="topbar">
+    <button class="hamburger" onclick="toggleSidebar()">☰</button>
+    <h2>Dashboard</h2>
+    <div></div>
+  </div>
+  <div class="content">
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-label">Clients</div>
+        <div class="stat-value"><%= stats.clients %></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Submitted</div>
+        <div class="stat-value"><%= stats.submitted %></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">In Review</div>
+        <div class="stat-value"><%= stats.inReview %></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">In Progress</div>
+        <div class="stat-value"><%= stats.inProgress %></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Complete</div>
+        <div class="stat-value"><%= stats.complete %></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <h3>Recent Requests</h3>
+        <a href="/admin/requests" class="btn btn-secondary btn-sm">View All</a>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Client</th>
+            <th>Service</th>
+            <th>Urgency</th>
+            <th>Status</th>
+            <th>Date</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% recentRequests.forEach(r => { %>
+          <tr>
+            <td><a href="/admin/requests/<%= r.id %>">#<%= r.id %></a></td>
+            <td><%= r.company_name %></td>
+            <td><%= r.service_type_name %></td>
+            <td><span class="badge badge-<%= r.urgency %>"><%= r.urgency %></span></td>
+            <td><span class="badge badge-<%= r.status %>"><%= r.status.replace('_', ' ') %></span></td>
+            <td><%= new Date(r.created_at).toLocaleDateString() %></td>
+          </tr>
+          <% }) %>
+          <% if (recentRequests.length === 0) { %>
+          <tr><td colspan="6" style="text-align:center;padding:32px;color:#94a3b8">No requests yet</td></tr>
+          <% } %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<%- include('../partials/foot') %>

@@ -1,0 +1,51 @@
+<%- include('../partials/head', { title }) %>
+<%- include('../partials/sidebar-client', { user, active: 'new-request' }) %>
+
+<div class="main">
+  <div class="topbar">
+    <button class="hamburger" onclick="toggleSidebar()">☰</button>
+    <h2>New Service Request</h2>
+    <a href="/portal" class="btn btn-secondary btn-sm">← Back</a>
+  </div>
+  <div class="content">
+    <% if (error) { %>
+      <div class="alert alert-error"><%= error %></div>
+    <% } %>
+
+    <div class="detail-section" style="max-width:700px">
+      <h3>Submit a Request</h3>
+      <form method="POST" action="/portal/requests" enctype="multipart/form-data">
+        <div class="form-group">
+          <label>Service Type</label>
+          <select name="service_type_id" class="form-control" required>
+            <option value="">Select a service...</option>
+            <% serviceTypes.forEach(st => { %>
+              <option value="<%= st.id %>"><%= st.name %></option>
+            <% }) %>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Urgency</label>
+          <select name="urgency" class="form-control" required>
+            <option value="low">Low</option>
+            <option value="medium" selected>Medium</option>
+            <option value="high">High</option>
+            <option value="urgent">Urgent</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Description</label>
+          <textarea name="description" class="form-control" rows="6" required placeholder="Describe what you need..."></textarea>
+        </div>
+        <div class="form-group">
+          <label>Attachments (optional, max 5 files)</label>
+          <input type="file" name="files" class="form-control" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.zip">
+        </div>
+        <button type="submit" class="btn btn-primary">Submit Request</button>
+        <a href="/portal" class="btn btn-secondary" style="margin-left:8px">Cancel</a>
+      </form>
+    </div>
+  </div>
+</div>
+
+<%- include('../partials/foot') %>

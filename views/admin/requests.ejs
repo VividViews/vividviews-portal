@@ -1,0 +1,65 @@
+<%- include('../partials/head', { title }) %>
+<%- include('../partials/sidebar-admin', { user, active: 'requests' }) %>
+
+<div class="main">
+  <div class="topbar">
+    <button class="hamburger" onclick="toggleSidebar()">☰</button>
+    <h2>All Requests</h2>
+    <div></div>
+  </div>
+  <div class="content">
+    <div class="card">
+      <form class="filter-bar" method="GET" action="/admin/requests">
+        <select name="status" onchange="this.form.submit()">
+          <option value="">All Statuses</option>
+          <option value="submitted" <%= filters.status === 'submitted' ? 'selected' : '' %>>Submitted</option>
+          <option value="in_review" <%= filters.status === 'in_review' ? 'selected' : '' %>>In Review</option>
+          <option value="in_progress" <%= filters.status === 'in_progress' ? 'selected' : '' %>>In Progress</option>
+          <option value="complete" <%= filters.status === 'complete' ? 'selected' : '' %>>Complete</option>
+        </select>
+        <select name="urgency" onchange="this.form.submit()">
+          <option value="">All Urgencies</option>
+          <option value="low" <%= filters.urgency === 'low' ? 'selected' : '' %>>Low</option>
+          <option value="medium" <%= filters.urgency === 'medium' ? 'selected' : '' %>>Medium</option>
+          <option value="high" <%= filters.urgency === 'high' ? 'selected' : '' %>>High</option>
+          <option value="urgent" <%= filters.urgency === 'urgent' ? 'selected' : '' %>>Urgent</option>
+        </select>
+        <select name="client_id" onchange="this.form.submit()">
+          <option value="">All Clients</option>
+          <% clients.forEach(c => { %>
+            <option value="<%= c.id %>" <%= filters.client_id == c.id ? 'selected' : '' %>><%= c.company_name %></option>
+          <% }) %>
+        </select>
+      </form>
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Client</th>
+            <th>Service</th>
+            <th>Urgency</th>
+            <th>Status</th>
+            <th>Date</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% requests.forEach(r => { %>
+          <tr>
+            <td><a href="/admin/requests/<%= r.id %>">#<%= r.id %></a></td>
+            <td><%= r.company_name %></td>
+            <td><%= r.service_type_name %></td>
+            <td><span class="badge badge-<%= r.urgency %>"><%= r.urgency %></span></td>
+            <td><span class="badge badge-<%= r.status %>"><%= r.status.replace('_', ' ') %></span></td>
+            <td><%= new Date(r.created_at).toLocaleDateString() %></td>
+          </tr>
+          <% }) %>
+          <% if (requests.length === 0) { %>
+          <tr><td colspan="6" style="text-align:center;padding:32px;color:#94a3b8">No requests match your filters</td></tr>
+          <% } %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<%- include('../partials/foot') %>
