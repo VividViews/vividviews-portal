@@ -30,6 +30,15 @@ router.get('/', async (req, res) => {
   const accessLevel = req.session.user.accessLevel || 'owner';
   const siteId = req.session.user.siteId;
 
+  // Check onboarding
+  try {
+    const client = await db.get('SELECT onboarded FROM clients WHERE id = $1', [clientId]);
+    const onboarded = client && (client.onboarded === true || client.onboarded === 1);
+    if (!onboarded) {
+      return res.redirect('/portal/welcome');
+    }
+  } catch (e) { /* ignore, proceed to dashboard */ }
+
   let siteFilter = '';
   const baseParams = [clientId];
   if (accessLevel === 'site' && siteId) {
@@ -90,6 +99,15 @@ router.get('/', async (req, res) => {
     completedThisMonth = parseInt(ctm[0].count) || 0;
   } catch (e) { /* ignore */ }
 
+  // Fetch announcements
+  let announcements = [];
+  try {
+    announcements = await db.query(
+      "SELECT * FROM announcements WHERE target = 'all' OR target = $1 ORDER BY created_at DESC LIMIT 5",
+      [String(clientId)]
+    );
+  } catch (e) { /* ignore */ }
+
   res.render('portal/dashboard', {
     title: 'Dashboard',
     user: req.session.user,
@@ -103,8 +121,26 @@ router.get('/', async (req, res) => {
     sites,
     pendingEmergencies,
     accessLevel,
-    completedThisMonth
+    completedThisMonth,
+    announcements,
+    currentPath: req.path
   });
+});
+
+// Welcome / Onboarding
+router.get('/welcome', async (req, res) => {
+  res.render('portal/welcome', {
+    title: 'Welcome',
+    user: req.session.user,
+    currentPath: req.path
+  });
+});
+
+router.post('/welcome/complete', async (req, res) => {
+  const clientId = req.session.user.clientId;
+  const onboardedVal = db.type === 'pg' ? true : 1;
+  await db.run('UPDATE clients SET onboarded = $1 WHERE id = $2', [onboardedVal, clientId]);
+  res.redirect('/portal');
 });
 
 // File Vault
@@ -140,15 +176,17 @@ router.get('/files', async (req, res) => {
   res.render('portal/files', {
     title: 'File Vault',
     user: req.session.user,
-    requests: requestsWithFiles
+    requests: requestsWithFiles,
+    currentPath: req.path
   });
 });
 
 // New request form
 router.get('/requests/new', async (req, res) => {
+  const clientId = req.session.user.clientId;
   const serviceTypes = await db.query(
     'SELECT * FROM service_types WHERE client_id = $1 ORDER BY name',
-    [req.session.user.clientId]
+    [clientId]
   );
 
   // Get the user's site info
@@ -157,12 +195,23 @@ router.get('/requests/new', async (req, res) => {
     userSite = await db.get('SELECT * FROM client_sites WHERE id = $1', [req.session.user.siteId]);
   }
 
+  // Fetch templates
+  let templates = [];
+  try {
+    templates = await db.query(
+      'SELECT rt.*, st.name as service_type_name FROM request_templates rt LEFT JOIN service_types st ON rt.service_type_id = st.id WHERE rt.client_id = $1 ORDER BY rt.name',
+      [clientId]
+    );
+  } catch (e) { /* ignore */ }
+
   res.render('portal/new-request', {
     title: 'New Request',
     user: req.session.user,
     serviceTypes,
     userSite,
-    error: null
+    templates,
+    error: null,
+    currentPath: req.path
   });
 });
 
@@ -215,7 +264,7 @@ router.post('/requests', upload.array('files', 5), async (req, res) => {
       );
     }
 
-    res.redirect('/portal');
+    res.redirect(`/portal/requests/${result.lastID}/confirmation`);
   } catch (err) {
     console.error('Submit request error:', err);
     const serviceTypes = await db.query(
@@ -226,14 +275,43 @@ router.post('/requests', upload.array('files', 5), async (req, res) => {
     if (req.session.user.siteId) {
       userSite = await db.get('SELECT * FROM client_sites WHERE id = $1', [req.session.user.siteId]);
     }
+    let templates = [];
+    try {
+      templates = await db.query(
+        'SELECT rt.*, st.name as service_type_name FROM request_templates rt LEFT JOIN service_types st ON rt.service_type_id = st.id WHERE rt.client_id = $1 ORDER BY rt.name',
+        [clientId]
+      );
+    } catch (e) { /* ignore */ }
     res.render('portal/new-request', {
       title: 'New Request',
       user: req.session.user,
       serviceTypes,
       userSite,
-      error: 'Failed to submit request'
+      templates,
+      error: 'Failed to submit request',
+      currentPath: '/portal/requests/new'
     });
   }
+});
+
+// Request confirmation
+router.get('/requests/:id/confirmation', async (req, res) => {
+  const clientId = req.session.user.clientId;
+  const request = await db.get(`
+    SELECT sr.*, st.name as service_type_name
+    FROM service_requests sr
+    JOIN service_types st ON sr.service_type_id = st.id
+    WHERE sr.id = $1 AND sr.client_id = $2
+  `, [req.params.id, clientId]);
+
+  if (!request) return res.redirect('/portal');
+
+  res.render('portal/request-confirmation', {
+    title: 'Request Submitted',
+    user: req.session.user,
+    request,
+    currentPath: req.path
+  });
 });
 
 // Request detail
@@ -280,7 +358,8 @@ router.get('/requests/:id', async (req, res) => {
     request,
     attachments,
     comments,
-    rating
+    rating,
+    currentPath: req.path
   });
 });
 
@@ -383,8 +462,63 @@ router.get('/sites/:site_id/requests', async (req, res) => {
     user: req.session.user,
     site,
     requests,
-    statusFilter
+    statusFilter,
+    currentPath: req.path
   });
+});
+
+// ============ Notifications API ============
+
+router.get('/notifications', async (req, res) => {
+  try {
+    const notifications = await db.query(
+      'SELECT * FROM notifications WHERE user_id = $1 ORDER BY created_at DESC LIMIT 20',
+      [req.session.user.id]
+    );
+    res.json(notifications);
+  } catch (e) {
+    res.json([]);
+  }
+});
+
+router.post('/notifications/:id/read', async (req, res) => {
+  const readVal = db.type === 'pg' ? true : 1;
+  await db.run('UPDATE notifications SET read = $1 WHERE id = $2 AND user_id = $3', [readVal, req.params.id, req.session.user.id]);
+  res.json({ ok: true });
+});
+
+router.post('/notifications/read-all', async (req, res) => {
+  const readVal = db.type === 'pg' ? true : 1;
+  await db.run('UPDATE notifications SET read = $1 WHERE user_id = $2', [readVal, req.session.user.id]);
+  res.json({ ok: true });
+});
+
+// ============ Documents ============
+
+router.get('/documents', async (req, res) => {
+  const clientId = req.session.user.clientId;
+  let documents = [];
+  try {
+    documents = await db.query(
+      'SELECT * FROM client_documents WHERE client_id = $1 ORDER BY created_at DESC',
+      [clientId]
+    );
+  } catch (e) { /* ignore */ }
+
+  res.render('portal/documents', {
+    title: 'Documents',
+    user: req.session.user,
+    documents,
+    currentPath: req.path
+  });
+});
+
+router.get('/documents/:did/download', async (req, res) => {
+  const clientId = req.session.user.clientId;
+  const doc = await db.get('SELECT * FROM client_documents WHERE id = $1 AND client_id = $2', [req.params.did, clientId]);
+  if (!doc) return res.redirect('/portal/documents');
+  const filePath = path.join(__dirname, '..', 'uploads', doc.filename);
+  res.download(filePath, doc.original_name);
 });
 
 module.exports = router;

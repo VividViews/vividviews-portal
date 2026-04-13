@@ -3,6 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#00d4ff">
   <title><%= title %> — Vivid Views</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
@@ -380,6 +382,12 @@
 
     .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 99; }
     .overlay.active { display: block; }
+      @media (max-width: 768px) {
+      .card { overflow-x: auto; }
+      .content { padding: 12px; padding-bottom: 20px; }
+      .quick-actions { flex-direction: column; }
+      .detail-grid { grid-template-columns: 1fr; }
+    }
   </style>
 </head>
 <body>
@@ -407,6 +415,7 @@
     </a>
     <a href="/admin/inventory" class="<%= (typeof navActive !== 'undefined' ? navActive : active) === 'inventory' ? 'active' : '' %>"><span class="nav-icon">📦</span> Inventory</a>
     <a href="/admin/revenue" class="<%= navActive === 'revenue' ? 'active' : '' %>"><span class="nav-icon">💰</span> Revenue</a>
+    <a href="/admin/announcements" class="<%= active === 'announcements' ? 'active' : '' %>"><span class="nav-icon">📢</span> Announcements</a>
     <a href="/admin/settings" class="<%= navActive === 'settings' ? 'active' : '' %>"><span class="nav-icon">⚙️</span> Settings</a>
   </div>
   <div class="sidebar-footer">
@@ -504,7 +513,13 @@
     <style>
       .emergency-card { border: 1px solid rgba(239,68,68,0.3); box-shadow: 0 0 20px rgba(239,68,68,0.08); }
       .emergency-card::before { background: linear-gradient(135deg, #ef4444, #f97316) !important; }
-    </style>
+        @media (max-width: 768px) {
+      .card { overflow-x: auto; }
+      .content { padding: 12px; padding-bottom: 20px; }
+      .quick-actions { flex-direction: column; }
+      .detail-grid { grid-template-columns: 1fr; }
+    }
+  </style>
 
     <!-- Pending Emergencies -->
     <% if (pending.length > 0) { %>
@@ -651,6 +666,7 @@
     });
   });
 </script>
+<script>if("serviceWorker" in navigator){navigator.serviceWorker.register("/sw.js").catch(()=>{});}</script>
 </body>
 </html>
 

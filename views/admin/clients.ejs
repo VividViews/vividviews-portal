@@ -3,6 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#00d4ff">
   <title><%= title %> — Vivid Views</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
@@ -380,6 +382,12 @@
 
     .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 99; }
     .overlay.active { display: block; }
+      @media (max-width: 768px) {
+      .card { overflow-x: auto; }
+      .content { padding: 12px; padding-bottom: 20px; }
+      .quick-actions { flex-direction: column; }
+      .detail-grid { grid-template-columns: 1fr; }
+    }
   </style>
 </head>
 <body>
@@ -407,6 +415,7 @@
     </a>
     <a href="/admin/inventory" class="<%= (typeof navActive !== 'undefined' ? navActive : active) === 'inventory' ? 'active' : '' %>"><span class="nav-icon">📦</span> Inventory</a>
     <a href="/admin/revenue" class="<%= active === 'revenue' ? 'active' : '' %>"><span class="nav-icon">💰</span> Revenue</a>
+    <a href="/admin/announcements" class="<%= active === 'announcements' ? 'active' : '' %>"><span class="nav-icon">📢</span> Announcements</a>
     <a href="/admin/settings" class="<%= active === 'settings' ? 'active' : '' %>"><span class="nav-icon">⚙️</span> Settings</a>
   </div>
   <div class="sidebar-footer">
@@ -504,6 +513,7 @@
             <th>Contact</th>
             <th>Email</th>
             <th>Requests</th>
+            <th>Health</th>
             <th>Joined</th>
           </tr>
         </thead>
@@ -514,11 +524,21 @@
             <td><%= c.name %></td>
             <td style="color:var(--text-secondary)"><%= c.email %></td>
             <td><%= c.request_count %></td>
+            <td>
+              <% var hs = typeof c.healthScore !== 'undefined' ? c.healthScore : 100; %>
+              <% if (hs >= 80) { %>
+                <span class="badge" style="background:rgba(16,185,129,0.2);color:#10b981"><%= hs %> Healthy</span>
+              <% } else if (hs >= 50) { %>
+                <span class="badge" style="background:rgba(245,158,11,0.2);color:#fbbf24"><%= hs %> Fair</span>
+              <% } else { %>
+                <span class="badge" style="background:rgba(239,68,68,0.2);color:#ef4444"><%= hs %> At Risk</span>
+              <% } %>
+            </td>
             <td style="color:var(--text-secondary)"><%= new Date(c.created_at).toLocaleDateString() %></td>
           </tr>
           <% }) %>
           <% if (clients.length === 0) { %>
-          <tr><td colspan="5">
+          <tr><td colspan="6">
             <div class="empty-state">
               <div class="icon">🏢</div>
               <p>No clients yet. Create your first one!</p>
@@ -567,6 +587,7 @@
     });
   });
 </script>
+<script>if("serviceWorker" in navigator){navigator.serviceWorker.register("/sw.js").catch(()=>{});}</script>
 </body>
 </html>
 

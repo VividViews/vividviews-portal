@@ -5,6 +5,7 @@ const path = require('path');
 const db = require('../utils/db');
 const { requireAdmin } = require('../middleware/auth');
 const { sendStatusUpdate } = require('../utils/email');
+const { calculateHealthScore } = require('../utils/health');
 const router = express.Router();
 
 const storage = multer.diskStorage({
@@ -33,6 +34,17 @@ router.get('/', async (req, res) => {
     const pe = await db.get("SELECT COUNT(*) as count FROM emergency_requests WHERE status = 'pending'");
     pendingEmergencies = parseInt(pe.count) || 0;
   } catch (e) { /* table might not exist yet */ }
+
+  // SLA stats
+  let avgFirstResponse = 0;
+  try {
+    const slaResult = await db.get(
+      db.type === 'pg'
+        ? "SELECT AVG(EXTRACT(EPOCH FROM (first_response_at - created_at)) / 3600) as avg_hours FROM service_requests WHERE first_response_at IS NOT NULL"
+        : "SELECT AVG((julianday(first_response_at) - julianday(created_at)) * 24) as avg_hours FROM service_requests WHERE first_response_at IS NOT NULL"
+    );
+    avgFirstResponse = parseFloat(slaResult.avg_hours) || 0;
+  } catch (e) { /* ignore */ }
 
   const recentRequests = await db.query(`
     SELECT sr.*, c.company_name, st.name as service_type_name
@@ -67,7 +79,8 @@ router.get('/', async (req, res) => {
       pendingEmergencies
     },
     recentRequests,
-    recentActivity
+    recentActivity,
+    avgFirstResponse
   });
 });
 
@@ -80,6 +93,15 @@ router.get('/clients', async (req, res) => {
     JOIN users u ON c.user_id = u.id
     ORDER BY c.created_at DESC
   `);
+  // Calculate health scores
+  for (const c of clients) {
+    try {
+      c.healthScore = await calculateHealthScore(c.id);
+    } catch (e) {
+      c.healthScore = 100;
+    }
+  }
+
   res.render('admin/clients', { title: 'Clients', user: req.session.user, clients });
 });
 
@@ -177,6 +199,24 @@ router.get('/clients/:id', async (req, res) => {
   // We need a broader query: find all client-role users whose clientId maps to this client
   // For now, the primary user + any users with site_id pointing to this client's sites
 
+  // Fetch templates
+  let templates = [];
+  try {
+    templates = await db.query(
+      'SELECT rt.*, st.name as service_type_name FROM request_templates rt LEFT JOIN service_types st ON rt.service_type_id = st.id WHERE rt.client_id = $1 ORDER BY rt.name',
+      [client.id]
+    );
+  } catch (e) { /* ignore */ }
+
+  // Fetch documents
+  let documents = [];
+  try {
+    documents = await db.query(
+      'SELECT * FROM client_documents WHERE client_id = $1 ORDER BY created_at DESC',
+      [client.id]
+    );
+  } catch (e) { /* ignore */ }
+
   const renderData = {
     title: client.company_name,
     user: req.session.user,
@@ -190,6 +230,8 @@ router.get('/clients/:id', async (req, res) => {
     sites,
     projects,
     clientTypes,
+    templates,
+    documents,
     error: null
   };
   try {
@@ -220,13 +262,13 @@ router.get('/clients/:id/edit', async (req, res) => {
 
 // Save client edits
 router.post('/clients/:id/edit', async (req, res) => {
-  const { company_name, client_type_id, name, email, password } = req.body;
+  const { company_name, client_type_id, name, email, password, logo_url, brand_color } = req.body;
   try {
     const client = await db.get('SELECT * FROM clients WHERE id = $1', [req.params.id]);
     if (!client) return res.redirect('/admin/clients');
     
-    await db.run('UPDATE clients SET company_name = $1, client_type_id = $2 WHERE id = $3',
-      [company_name, client_type_id ? parseInt(client_type_id) : null, req.params.id]);
+    await db.run('UPDATE clients SET company_name = $1, client_type_id = $2, logo_url = $3, brand_color = $4 WHERE id = $5',
+      [company_name, client_type_id ? parseInt(client_type_id) : null, logo_url || '', brand_color || '#00d4ff', req.params.id]);
 
     await db.run('UPDATE users SET name = $1, email = $2 WHERE id = $3', [name, email, client.user_id]);
 
@@ -486,6 +528,19 @@ router.post('/requests/:id/status', async (req, res) => {
     'UPDATE service_requests SET status = $1, admin_notes = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3',
     [status, admin_notes, req.params.id]
   );
+
+  // SLA: set resolved_at when complete
+  if (status === 'complete') {
+    try {
+      await db.run(
+        db.type === 'pg'
+          ? "UPDATE service_requests SET resolved_at = NOW() WHERE id = $1 AND resolved_at IS NULL"
+          : "UPDATE service_requests SET resolved_at = datetime('now') WHERE id = $1 AND resolved_at IS NULL",
+        [req.params.id]
+      );
+    } catch (e) { /* ignore */ }
+  }
+
   let commentText = `Status changed to ${status.replace('_', ' ')}`;
   if (admin_notes) commentText += ` — ${admin_notes}`;
   await db.run(
@@ -493,9 +548,10 @@ router.post('/requests/:id/status', async (req, res) => {
     [req.params.id, 'Admin', 'admin', commentText, 'status_change']
   );
 
+  // Create notification for client
   try {
     const request = await db.get(`
-      SELECT sr.*, u.email as contact_email, u.name as contact_name
+      SELECT sr.*, u.email as contact_email, u.name as contact_name, c.user_id as client_user_id
       FROM service_requests sr
       JOIN clients c ON sr.client_id = c.id
       JOIN users u ON c.user_id = u.id
@@ -503,6 +559,13 @@ router.post('/requests/:id/status', async (req, res) => {
     `, [req.params.id]);
     if (request) {
       await sendStatusUpdate(request.contact_email, request.contact_name, req.params.id, status, admin_notes);
+      // In-app notification
+      try {
+        await db.run(
+          'INSERT INTO notifications (user_id, title, message, link) VALUES ($1, $2, $3, $4)',
+          [request.client_user_id, 'Request Updated', `Request #${req.params.id} status changed to ${status.replace(/_/g, ' ')}`, `/portal/requests/${req.params.id}`]
+        );
+      } catch (ne) { /* ignore */ }
     }
   } catch (err) {
     console.error('Email notification error:', err.message);
@@ -519,6 +582,27 @@ router.post('/requests/:id/comment', async (req, res) => {
       'INSERT INTO request_comments (service_request_id, author_name, author_role, comment, comment_type) VALUES ($1, $2, $3, $4, $5)',
       [req.params.id, 'Admin', 'admin', comment.trim(), 'comment']
     );
+
+    // SLA: set first_response_at if null
+    try {
+      await db.run(
+        db.type === 'pg'
+          ? "UPDATE service_requests SET first_response_at = NOW() WHERE id = $1 AND first_response_at IS NULL"
+          : "UPDATE service_requests SET first_response_at = datetime('now') WHERE id = $1 AND first_response_at IS NULL",
+        [req.params.id]
+      );
+    } catch (e) { /* ignore */ }
+
+    // Notification for client
+    try {
+      const sr = await db.get('SELECT sr.client_id, c.user_id FROM service_requests sr JOIN clients c ON sr.client_id = c.id WHERE sr.id = $1', [req.params.id]);
+      if (sr) {
+        await db.run(
+          'INSERT INTO notifications (user_id, title, message, link) VALUES ($1, $2, $3, $4)',
+          [sr.user_id, 'New Comment', `New comment on Request #${req.params.id}`, `/portal/requests/${req.params.id}`]
+        );
+      }
+    } catch (ne) { /* ignore */ }
   }
   res.redirect(`/admin/requests/${req.params.id}`);
 });
@@ -1185,6 +1269,90 @@ router.delete('/settings/client-types/:id', async (req, res) => {
   }
   await db.run('DELETE FROM client_types WHERE id = $1', [req.params.id]);
   res.json({ ok: true });
+});
+
+// ============ Request Templates ============
+
+router.post('/clients/:id/templates', async (req, res) => {
+  const { name, service_type_id, description } = req.body;
+  await db.run(
+    'INSERT INTO request_templates (client_id, name, service_type_id, description) VALUES ($1, $2, $3, $4)',
+    [req.params.id, name, service_type_id || null, description || '']
+  );
+  res.redirect(`/admin/clients/${req.params.id}`);
+});
+
+router.delete('/clients/:id/templates/:tid', async (req, res) => {
+  await db.run('DELETE FROM request_templates WHERE id = $1 AND client_id = $2', [req.params.tid, req.params.id]);
+  res.json({ ok: true });
+});
+
+// ============ Announcements ============
+
+router.get('/announcements', async (req, res) => {
+  const announcements = await db.query(`
+    SELECT a.*, u.name as author_name
+    FROM announcements a
+    LEFT JOIN users u ON a.created_by = u.id
+    ORDER BY a.created_at DESC
+  `);
+  const clients = await db.query('SELECT id, company_name FROM clients ORDER BY company_name');
+
+  // Resolve client names for targeted announcements
+  for (const a of announcements) {
+    if (a.target !== 'all') {
+      const targetClient = await db.get('SELECT company_name FROM clients WHERE id = $1', [a.target]);
+      a.target_name = targetClient ? targetClient.company_name : 'Unknown';
+    } else {
+      a.target_name = 'All Clients';
+    }
+  }
+
+  res.render('admin/announcements', {
+    title: 'Announcements',
+    user: req.session.user,
+    announcements,
+    clients
+  });
+});
+
+router.post('/announcements', async (req, res) => {
+  const { title, message, target } = req.body;
+  await db.run(
+    'INSERT INTO announcements (title, message, target, created_by) VALUES ($1, $2, $3, $4)',
+    [title, message, target || 'all', req.session.user.id]
+  );
+  res.redirect('/admin/announcements');
+});
+
+router.delete('/announcements/:id', async (req, res) => {
+  await db.run('DELETE FROM announcements WHERE id = $1', [req.params.id]);
+  res.json({ ok: true });
+});
+
+// ============ Client Documents ============
+
+router.post('/clients/:id/documents', upload.single('file'), async (req, res) => {
+  if (req.file) {
+    const { doc_type, description } = req.body;
+    await db.run(
+      'INSERT INTO client_documents (client_id, filename, original_name, mimetype, doc_type, description, uploaded_by) VALUES ($1, $2, $3, $4, $5, $6, $7)',
+      [req.params.id, req.file.filename, req.file.originalname, req.file.mimetype, doc_type || 'other', description || '', req.session.user.id]
+    );
+  }
+  res.redirect(`/admin/clients/${req.params.id}`);
+});
+
+router.delete('/clients/:id/documents/:did', async (req, res) => {
+  await db.run('DELETE FROM client_documents WHERE id = $1 AND client_id = $2', [req.params.did, req.params.id]);
+  res.json({ ok: true });
+});
+
+router.get('/clients/:id/documents/:did/download', async (req, res) => {
+  const doc = await db.get('SELECT * FROM client_documents WHERE id = $1 AND client_id = $2', [req.params.did, req.params.id]);
+  if (!doc) return res.redirect(`/admin/clients/${req.params.id}`);
+  const filePath = path.join(__dirname, '..', 'uploads', doc.filename);
+  res.download(filePath, doc.original_name);
 });
 
 module.exports = router;

@@ -3,6 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#00d4ff">
   <title><%= title %> — Vivid Views</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
@@ -380,6 +382,12 @@
 
     .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 99; }
     .overlay.active { display: block; }
+      @media (max-width: 768px) {
+      .card { overflow-x: auto; }
+      .content { padding: 12px; padding-bottom: 20px; }
+      .quick-actions { flex-direction: column; }
+      .detail-grid { grid-template-columns: 1fr; }
+    }
   </style>
 </head>
 <body>
@@ -407,6 +415,7 @@
     </a>
     <a href="/admin/inventory" class="<%= (typeof navActive !== 'undefined' ? navActive : active) === 'inventory' ? 'active' : '' %>"><span class="nav-icon">📦</span> Inventory</a>
     <a href="/admin/revenue" class="<%= active === 'revenue' ? 'active' : '' %>"><span class="nav-icon">💰</span> Revenue</a>
+    <a href="/admin/announcements" class="<%= active === 'announcements' ? 'active' : '' %>"><span class="nav-icon">📢</span> Announcements</a>
     <a href="/admin/settings" class="<%= active === 'settings' ? 'active' : '' %>"><span class="nav-icon">⚙️</span> Settings</a>
   </div>
   <div class="sidebar-footer">
@@ -549,7 +558,13 @@
         .tab-btn.active { color:var(--cyan); border-bottom-color:var(--cyan); }
         .tab-content { display:none; }
         .tab-content.active { display:block; }
-      </style>
+          @media (max-width: 768px) {
+      .card { overflow-x: auto; }
+      .content { padding: 12px; padding-bottom: 20px; }
+      .quick-actions { flex-direction: column; }
+      .detail-grid { grid-template-columns: 1fr; }
+    }
+  </style>
 
       <div class="tab-nav">
         <button class="tab-btn active" onclick="showTab('info')">Client Info</button>
@@ -562,6 +577,8 @@
         <% } %>
         <button class="tab-btn" onclick="showTab('notes')">Notes</button>
         <button class="tab-btn" onclick="showTab('revenue')">Revenue</button>
+        <button class="tab-btn" onclick="showTab('templates')">Templates</button>
+        <button class="tab-btn" onclick="showTab('documents')">Documents</button>
         <button class="tab-btn" onclick="showTab('requests')">Requests (<%= requests.length %>)</button>
       </div>
 
@@ -895,6 +912,99 @@
         </div>
       </div>
 
+      <!-- Tab: Templates -->
+      <div class="tab-content" id="tab-templates">
+        <div class="detail-section" style="max-width:700px">
+          <h3>Request Templates</h3>
+          <% if (typeof templates !== 'undefined' && templates && templates.length > 0) { %>
+          <table>
+            <thead><tr><th>Name</th><th>Service Type</th><th>Description</th><th>Actions</th></tr></thead>
+            <tbody>
+              <% templates.forEach(function(t) { %>
+              <tr>
+                <td style="font-weight:500"><%= t.name %></td>
+                <td><%= t.service_type_name || '—' %></td>
+                <td style="color:var(--text-secondary);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><%= t.description || '—' %></td>
+                <td><button onclick="deleteResource('/admin/clients/<%= client.id %>/templates/<%= t.id %>', '/admin/clients/<%= client.id %>')" class="btn btn-danger btn-sm">🗑</button></td>
+              </tr>
+              <% }) %>
+            </tbody>
+          </table>
+          <% } else { %>
+            <p style="color:var(--text-secondary);font-size:14px;margin-bottom:16px">No templates yet</p>
+          <% } %>
+          <form method="POST" action="/admin/clients/<%= client.id %>/templates" style="margin-top:16px;padding-top:16px;border-top:1px solid var(--card-border)">
+            <div class="form-group">
+              <label>Template Name</label>
+              <input type="text" name="name" class="form-control" required placeholder="e.g. Monthly Maintenance">
+            </div>
+            <div class="form-group">
+              <label>Service Type</label>
+              <select name="service_type_id" class="form-control">
+                <option value="">Select...</option>
+                <% serviceTypes.forEach(function(st) { %>
+                <option value="<%= st.id %>"><%= st.name %></option>
+                <% }) %>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Description</label>
+              <textarea name="description" class="form-control" rows="3" placeholder="Template description..."></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary btn-sm">Add Template</button>
+          </form>
+        </div>
+      </div>
+
+      <!-- Tab: Documents -->
+      <div class="tab-content" id="tab-documents">
+        <div class="detail-section" style="max-width:800px">
+          <h3>Documents</h3>
+          <% if (typeof documents !== 'undefined' && documents && documents.length > 0) { %>
+          <table>
+            <thead><tr><th>Name</th><th>Type</th><th>Description</th><th>Uploaded</th><th>Actions</th></tr></thead>
+            <tbody>
+              <% documents.forEach(function(d) { %>
+              <tr>
+                <td style="font-weight:500"><%= d.original_name %></td>
+                <td><span class="badge" style="background:rgba(0,212,255,0.15);color:#00d4ff"><%= d.doc_type %></span></td>
+                <td style="color:var(--text-secondary)"><%= d.description || '—' %></td>
+                <td style="font-size:13px;color:var(--text-secondary)"><%= new Date(d.created_at).toLocaleDateString() %></td>
+                <td style="display:flex;gap:4px">
+                  <a href="/admin/clients/<%= client.id %>/documents/<%= d.id %>/download" class="btn btn-secondary btn-sm">⬇</a>
+                  <button onclick="deleteResource('/admin/clients/<%= client.id %>/documents/<%= d.id %>', '/admin/clients/<%= client.id %>')" class="btn btn-danger btn-sm">🗑</button>
+                </td>
+              </tr>
+              <% }) %>
+            </tbody>
+          </table>
+          <% } else { %>
+            <p style="color:var(--text-secondary);font-size:14px;margin-bottom:16px">No documents yet</p>
+          <% } %>
+          <form method="POST" action="/admin/clients/<%= client.id %>/documents" enctype="multipart/form-data" style="margin-top:16px;padding-top:16px;border-top:1px solid var(--card-border)">
+            <div class="form-group">
+              <label>File</label>
+              <input type="file" name="file" class="form-control" required>
+            </div>
+            <div class="form-group">
+              <label>Document Type</label>
+              <select name="doc_type" class="form-control">
+                <option value="contract">Contract</option>
+                <option value="sow">SOW</option>
+                <option value="proposal">Proposal</option>
+                <option value="invoice">Invoice</option>
+                <option value="other" selected>Other</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Description</label>
+              <input type="text" name="description" class="form-control" placeholder="Optional description...">
+            </div>
+            <button type="submit" class="btn btn-primary btn-sm">Upload Document</button>
+          </form>
+        </div>
+      </div>
+
       <!-- Tab: Requests -->
       <div class="tab-content" id="tab-requests">
         <div class="card">
@@ -975,6 +1085,7 @@ function showTab(name) {
     });
   });
 </script>
+<script>if("serviceWorker" in navigator){navigator.serviceWorker.register("/sw.js").catch(()=>{});}</script>
 </body>
 </html>
 

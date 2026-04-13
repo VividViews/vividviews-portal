@@ -4,6 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title><%= title %> — Vivid Views</title>
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#00d4ff">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -366,17 +370,24 @@
       font-size: 11px; color: var(--text-secondary); text-align: center;
     }
 
+    input, select, textarea { font-size: 16px !important; }
     @media (max-width: 768px) {
-      .sidebar { transform: translateX(-100%); }
-      .sidebar.open { transform: translateX(0); }
-      .main { margin-left: 0; }
+      .sidebar { display: none !important; }
+      .main { margin-left: 0 !important; }
+      .bottom-nav { display: flex !important; position: fixed; bottom: 0; left: 0; right: 0; z-index: 200; background: rgba(5,13,26,0.98); backdrop-filter: blur(20px); border-top: 1px solid rgba(255,255,255,0.08); padding: 8px 0 max(8px, env(safe-area-inset-bottom)); }
+      .bottom-nav a { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; color: #64748b; text-decoration: none; font-size: 10px; padding: 4px 0; }
+      .bottom-nav a.active, .bottom-nav a:hover { color: #00d4ff; }
+      .bottom-nav .nav-icon { font-size: 22px; }
+      .content { padding: 16px; padding-bottom: 80px; }
+      .topbar { padding: 12px 16px; }
       .hamburger { display: block; }
-      .content { padding: 16px; }
-      .stats-grid { grid-template-columns: repeat(2, 1fr); }
+      .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
       .detail-grid { grid-template-columns: 1fr; }
-      table { font-size: 13px; }
+      table { font-size: 12px; }
       th, td { padding: 8px 10px; }
+      .btn { padding: 10px 16px; font-size: 13px; }
     }
+    @media (min-width: 769px) { .bottom-nav { display: none; } }
 
     .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 99; }
     .overlay.active { display: block; }
@@ -388,7 +399,11 @@
 <% var active = 'new-request'; %>
 <nav class="sidebar">
   <div class="sidebar-brand">
-    <div class="sidebar-monogram">VV</div>
+    <% if (user.companyLogo) { %>
+      <img src="<%= user.companyLogo %>" style="height:32px;object-fit:contain;max-width:140px" alt="Logo">
+    <% } else { %>
+      <div class="sidebar-monogram">VV</div>
+    <% } %>
     <div class="sidebar-brand-text">
       <h1>Vivid Views</h1>
       <small>Client Portal</small>
@@ -398,6 +413,7 @@
     <a href="/portal" class="<%= active === 'dashboard' ? 'active' : '' %>"><span class="nav-icon">📊</span> Dashboard</a>
     <a href="/portal/requests/new" class="<%= active === 'new-request' ? 'active' : '' %>"><span class="nav-icon">➕</span> New Request</a>
     <a href="/portal/files" class="<%= active === 'files' ? 'active' : '' %>"><span class="nav-icon">🔒</span> File Vault</a>
+    <a href="/portal/documents"><span class="nav-icon">📄</span> Documents</a>
   </div>
   <div class="sidebar-footer">
     <div class="user-avatar"><%= user.name ? user.name.charAt(0).toUpperCase() : 'C' %></div>
@@ -416,7 +432,20 @@
   <div class="topbar">
     <button class="hamburger" onclick="toggleSidebar()">☰</button>
     <h2>New Service Request</h2>
-    <a href="/portal" class="btn btn-secondary btn-sm">← Back</a>
+    <div style="display:flex;align-items:center;gap:12px">
+      <div class="notif-bell" id="notifBell" onclick="toggleNotifPanel()" style="position:relative;cursor:pointer;font-size:20px">
+        🔔
+        <span class="notif-badge" id="notifBadge" style="display:none;position:absolute;top:-4px;right:-4px;width:18px;height:18px;border-radius:50%;background:#ef4444;font-size:10px;font-weight:700;color:#fff;display:flex;align-items:center;justify-content:center">0</span>
+      </div>
+      <div id="notifPanel" style="display:none;position:absolute;top:60px;right:20px;width:320px;background:rgba(10,22,40,0.98);border:1px solid rgba(255,255,255,0.1);border-radius:12px;box-shadow:0 0 40px rgba(0,212,255,0.1);z-index:200;max-height:400px;overflow-y:auto">
+        <div style="padding:12px 16px;border-bottom:1px solid rgba(255,255,255,0.08);display:flex;justify-content:space-between;align-items:center">
+          <span style="font-weight:600;color:#f0f6ff">Notifications</span>
+          <button onclick="markAllRead()" style="background:none;border:none;color:#00d4ff;cursor:pointer;font-size:12px">Mark all read</button>
+        </div>
+        <div id="notifList"></div>
+      </div>
+      <a href="/portal" class="btn btn-secondary btn-sm">← Back</a>
+    </div>
   </div>
   <div class="content">
     <% if (error) { %>
@@ -424,6 +453,17 @@
     <% } %>
 
     <div class="detail-section" style="max-width:700px">
+      <% if (typeof templates !== 'undefined' && templates && templates.length > 0) { %>
+      <div style="margin-bottom:24px">
+        <h3 style="margin-bottom:12px">Quick Templates</h3>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px">
+          <% templates.forEach(function(t) { %>
+          <button type="button" onclick="applyTemplate('<%= t.service_type_id || '' %>', '<%= (t.description || '').replace(/'/g, "\\'").replace(/\n/g, '\\n') %>')" style="padding:8px 16px;background:rgba(0,212,255,0.08);border:1px solid rgba(0,212,255,0.2);border-radius:8px;color:#00d4ff;cursor:pointer;font-size:13px;font-weight:500;font-family:inherit;transition:all 0.2s" onmouseover="this.style.background='rgba(0,212,255,0.15)'" onmouseout="this.style.background='rgba(0,212,255,0.08)'">📋 <%= t.name %></button>
+          <% }) %>
+        </div>
+        <div style="border-bottom:1px solid var(--card-border);margin-bottom:16px;padding-bottom:8px;font-size:12px;color:var(--text-secondary)">Or fill out manually below</div>
+      </div>
+      <% } %>
       <h3>Submit a Request</h3>
       <form method="POST" action="/portal/requests" enctype="multipart/form-data">
 
@@ -511,6 +551,31 @@
       if (!isNaN(target)) countUp(el, target, 600);
     });
   });
+</script>
+
+<nav class="bottom-nav">
+  <a href="/portal"><span class="nav-icon">📊</span>Dashboard</a>
+  <a href="/portal/requests/new" class="active"><span class="nav-icon">➕</span>New Request</a>
+  <a href="/portal/files"><span class="nav-icon">📁</span>Files</a>
+  <a href="/portal/documents"><span class="nav-icon">📄</span>Docs</a>
+</nav>
+
+<script>
+function applyTemplate(serviceTypeId, description) {
+  var stSelect = document.querySelector('select[name="service_type_id"]');
+  var descField = document.querySelector('textarea[name="description"]');
+  if (stSelect && serviceTypeId) stSelect.value = serviceTypeId;
+  if (descField) descField.value = description.replace(/\\n/g, '\n');
+  if (stSelect) stSelect.focus();
+}
+async function loadNotifications(){try{const r=await fetch('/portal/notifications');const d=await r.json();const u=d.filter(n=>!n.read);const b=document.getElementById('notifBadge');const l=document.getElementById('notifList');if(b){b.textContent=u.length;b.style.display=u.length>0?'flex':'none';}if(l){l.innerHTML=d.length===0?'<div style="padding:24px;text-align:center;color:#64748b">No notifications</div>':d.map(n=>'<div onclick="readNotif('+n.id+',\''+n.link+'\')" style="padding:12px 16px;border-bottom:1px solid rgba(255,255,255,0.05);cursor:pointer;background:'+(n.read?'transparent':'rgba(0,212,255,0.04)')+'\'"><div style="font-size:13px;font-weight:600;color:#f0f6ff">'+n.title+'</div><div style="font-size:12px;color:#64748b;margin-top:2px">'+n.message+'</div></div>').join('');}}catch(e){}}
+function toggleNotifPanel(){const p=document.getElementById('notifPanel');if(p)p.style.display=p.style.display==='none'?'block':'none';}
+async function readNotif(id,link){await fetch('/portal/notifications/'+id+'/read',{method:'POST'});if(link)window.location.href=link;else loadNotifications();}
+async function markAllRead(){await fetch('/portal/notifications/read-all',{method:'POST'});loadNotifications();}
+document.addEventListener('DOMContentLoaded',loadNotifications);
+setInterval(loadNotifications,30000);
+document.addEventListener('click',e=>{const p=document.getElementById('notifPanel');const b=document.getElementById('notifBell');if(p&&b&&!b.contains(e.target)&&!p.contains(e.target)){p.style.display='none';}});
+if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js').catch(()=>{});}
 </script>
 </body>
 </html>

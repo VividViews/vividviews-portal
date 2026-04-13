@@ -4,6 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title><%= title %> — Vivid Views</title>
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#00d4ff">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -186,15 +190,22 @@
     .empty-state .icon { font-size: 48px; margin-bottom: 12px; }
     .empty-state p { font-size: 16px; }
 
+    input, select, textarea { font-size: 16px !important; }
     @media (max-width: 768px) {
-      .sidebar { transform: translateX(-100%); }
-      .sidebar.open { transform: translateX(0); }
-      .main { margin-left: 0; }
+      .sidebar { display: none !important; }
+      .main { margin-left: 0 !important; }
+      .bottom-nav { display: flex !important; position: fixed; bottom: 0; left: 0; right: 0; z-index: 200; background: rgba(5,13,26,0.98); backdrop-filter: blur(20px); border-top: 1px solid rgba(255,255,255,0.08); padding: 8px 0 max(8px, env(safe-area-inset-bottom)); }
+      .bottom-nav a { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; color: #64748b; text-decoration: none; font-size: 10px; padding: 4px 0; }
+      .bottom-nav a.active, .bottom-nav a:hover { color: #00d4ff; }
+      .bottom-nav .nav-icon { font-size: 22px; }
+      .content { padding: 16px; padding-bottom: 80px; }
+      .topbar { padding: 12px 16px; }
       .hamburger { display: block; }
-      .content { padding: 16px; }
-      table { font-size: 13px; }
+      table { font-size: 12px; }
       th, td { padding: 8px 10px; }
+      .btn { padding: 10px 16px; font-size: 13px; }
     }
+    @media (min-width: 769px) { .bottom-nav { display: none; } }
 
     .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 99; }
     .overlay.active { display: block; }
@@ -205,7 +216,11 @@
 
 <nav class="sidebar">
   <div class="sidebar-brand">
-    <div class="sidebar-monogram">VV</div>
+    <% if (user.companyLogo) { %>
+      <img src="<%= user.companyLogo %>" style="height:32px;object-fit:contain;max-width:140px" alt="Logo">
+    <% } else { %>
+      <div class="sidebar-monogram">VV</div>
+    <% } %>
     <div class="sidebar-brand-text">
       <h1>Vivid Views</h1>
       <small>Client Portal</small>
@@ -215,6 +230,7 @@
     <a href="/portal"><span class="nav-icon">📊</span> Dashboard</a>
     <a href="/portal/requests/new"><span class="nav-icon">➕</span> New Request</a>
     <a href="/portal/files"><span class="nav-icon">🔒</span> File Vault</a>
+    <a href="/portal/documents"><span class="nav-icon">📄</span> Documents</a>
   </div>
   <div class="sidebar-footer">
     <div class="user-avatar"><%= user.name ? user.name.charAt(0).toUpperCase() : 'C' %></div>
@@ -314,6 +330,17 @@ function toggleSidebar() {
   document.querySelector('.sidebar').classList.toggle('open');
   document.getElementById('overlay').classList.toggle('active');
 }
+</script>
+
+<nav class="bottom-nav">
+  <a href="/portal"><span class="nav-icon">📊</span>Dashboard</a>
+  <a href="/portal/requests/new"><span class="nav-icon">➕</span>New Request</a>
+  <a href="/portal/files"><span class="nav-icon">📁</span>Files</a>
+  <a href="/portal/documents"><span class="nav-icon">📄</span>Docs</a>
+</nav>
+
+<script>
+if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js').catch(()=>{});}
 </script>
 </body>
 </html>

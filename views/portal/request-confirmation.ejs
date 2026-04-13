@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %> — Vivid Views</title>
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#00d4ff">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #050d1a; --card-bg: rgba(255,255,255,0.04); --card-border: rgba(255,255,255,0.08);
+      --cyan: #00d4ff; --purple: #7c3aed; --gradient: linear-gradient(135deg, #00d4ff, #7c3aed);
+      --text: #f0f6ff; --text-secondary: #64748b; --sidebar-bg: rgba(5,13,26,0.95);
+      --sidebar-border: rgba(255,255,255,0.06); --glow: 0 0 30px rgba(0,212,255,0.08);
+    }
+    body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; display: flex; }
+    body::before { content: ''; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-image: linear-gradient(rgba(0,212,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(0,212,255,0.03) 1px, transparent 1px); background-size: 50px 50px; pointer-events: none; z-index: 0; }
+    .sidebar { width: 260px; background: var(--sidebar-bg); backdrop-filter: blur(20px); border-right: 1px solid var(--sidebar-border); min-height: 100vh; position: fixed; top: 0; left: 0; z-index: 100; display: flex; flex-direction: column; }
+    .sidebar-brand { padding: 24px 20px; border-bottom: 1px solid var(--sidebar-border); display: flex; align-items: center; gap: 12px; }
+    .sidebar-monogram { width: 40px; height: 40px; background: var(--gradient); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 16px; color: #fff; }
+    .sidebar-brand-text h1 { font-size: 18px; font-weight: 700; color: var(--text); }
+    .sidebar-brand-text small { display: block; font-size: 11px; color: var(--cyan); text-transform: uppercase; letter-spacing: 1px; margin-top: 2px; }
+    .sidebar-nav { flex: 1; padding: 16px 12px; }
+    .sidebar-nav a { display: flex; align-items: center; gap: 12px; padding: 10px 12px; color: var(--text-secondary); text-decoration: none; border-radius: 8px; font-size: 14px; font-weight: 500; transition: all 0.2s; margin-bottom: 2px; border-left: 3px solid transparent; }
+    .sidebar-nav a:hover { background: rgba(0,212,255,0.05); color: var(--text); }
+    .sidebar-nav a.active { background: rgba(0,212,255,0.08); color: var(--cyan); border-left-color: var(--cyan); }
+    .sidebar-nav .nav-icon { width: 20px; text-align: center; font-size: 16px; }
+    .sidebar-footer { padding: 16px 20px; border-top: 1px solid var(--sidebar-border); display: flex; align-items: center; gap: 12px; }
+    .user-avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--gradient); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; color: #fff; flex-shrink: 0; }
+    .sidebar-footer .user-info { flex: 1; min-width: 0; }
+    .sidebar-footer .user-info strong { color: var(--text); display: block; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .sidebar-footer .user-info span { font-size: 11px; color: var(--text-secondary); }
+    .btn-logout { background: none; border: 1px solid rgba(255,255,255,0.1); color: var(--text-secondary); padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; transition: all 0.2s; font-family: inherit; }
+    .main { margin-left: 260px; flex: 1; min-height: 100vh; position: relative; z-index: 1; }
+    .topbar { background: rgba(5,13,26,0.8); backdrop-filter: blur(20px); border-bottom: 1px solid var(--card-border); padding: 16px 32px; display: flex; align-items: center; justify-content: space-between; }
+    .topbar h2 { font-size: 20px; font-weight: 600; color: var(--text); }
+    .content { padding: 32px; display: flex; align-items: center; justify-content: center; min-height: calc(100vh - 65px); }
+    .btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; border-radius: 8px; font-size: 14px; font-weight: 600; text-decoration: none; border: none; cursor: pointer; transition: all 0.2s; font-family: inherit; }
+    .btn-primary { background: var(--gradient); color: #fff; box-shadow: 0 0 20px rgba(0,212,255,0.15); }
+    .btn-secondary { background: var(--card-bg); color: var(--cyan); border: 1px solid rgba(0,212,255,0.3); }
+    .badge { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+    .badge-low { background: rgba(16,185,129,0.2); color: #10b981; }
+    .badge-medium { background: rgba(245,158,11,0.2); color: #fbbf24; }
+    .badge-high { background: rgba(249,115,22,0.2); color: #fb923c; }
+    .badge-urgent { background: rgba(239,68,68,0.2); color: #ef4444; }
+    .hamburger { display: none; background: none; border: none; font-size: 24px; cursor: pointer; color: var(--text); }
+    input, select, textarea { font-size: 16px !important; }
+    @keyframes checkFadeIn { from { opacity: 0; transform: scale(0.5); } to { opacity: 1; transform: scale(1); } }
+    @keyframes glowPulse { 0%, 100% { box-shadow: 0 0 30px rgba(0,212,255,0.3); } 50% { box-shadow: 0 0 60px rgba(0,212,255,0.5); } }
+    .check-icon { animation: checkFadeIn 0.6s ease-out, glowPulse 2s ease-in-out infinite; }
+    @media (max-width: 768px) {
+      .sidebar { display: none !important; }
+      .main { margin-left: 0 !important; }
+      .bottom-nav { display: flex !important; position: fixed; bottom: 0; left: 0; right: 0; z-index: 200; background: rgba(5,13,26,0.98); backdrop-filter: blur(20px); border-top: 1px solid rgba(255,255,255,0.08); padding: 8px 0 max(8px, env(safe-area-inset-bottom)); }
+      .bottom-nav a { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; color: #64748b; text-decoration: none; font-size: 10px; padding: 4px 0; transition: color 0.2s; }
+      .bottom-nav a.active, .bottom-nav a:hover { color: #00d4ff; }
+      .bottom-nav .nav-icon { font-size: 22px; }
+      .content { padding: 16px; padding-bottom: 80px; }
+      .topbar { padding: 12px 16px; }
+    }
+    @media (min-width: 769px) { .bottom-nav { display: none; } }
+  </style>
+</head>
+<body>
+<nav class="sidebar">
+  <div class="sidebar-brand">
+    <% if (user.companyLogo) { %>
+      <img src="<%= user.companyLogo %>" style="height:32px;object-fit:contain;max-width:140px" alt="Logo">
+    <% } else { %>
+      <div class="sidebar-monogram">VV</div>
+    <% } %>
+    <div class="sidebar-brand-text">
+      <h1>Vivid Views</h1>
+      <small>Client Portal</small>
+    </div>
+  </div>
+  <div class="sidebar-nav">
+    <a href="/portal"><span class="nav-icon">📊</span> Dashboard</a>
+    <a href="/portal/requests/new"><span class="nav-icon">➕</span> New Request</a>
+    <a href="/portal/files"><span class="nav-icon">🔒</span> File Vault</a>
+    <a href="/portal/documents"><span class="nav-icon">📄</span> Documents</a>
+  </div>
+  <div class="sidebar-footer">
+    <div class="user-avatar"><%= user.name ? user.name.charAt(0).toUpperCase() : 'C' %></div>
+    <div class="user-info">
+      <strong><%= user.name %></strong>
+      <span><%= user.companyName %></span>
+    </div>
+    <form method="POST" action="/auth/logout" style="margin:0">
+      <button type="submit" class="btn-logout">↗</button>
+    </form>
+  </div>
+</nav>
+
+<div class="main">
+  <div class="topbar">
+    <h2>Request Submitted</h2>
+    <div style="display:flex;align-items:center;gap:12px">
+      <div class="notif-bell" id="notifBell" onclick="toggleNotifPanel()" style="position:relative;cursor:pointer;font-size:20px">
+        🔔
+        <span class="notif-badge" id="notifBadge" style="display:none;position:absolute;top:-4px;right:-4px;width:18px;height:18px;border-radius:50%;background:#ef4444;font-size:10px;font-weight:700;color:#fff;display:flex;align-items:center;justify-content:center">0</span>
+      </div>
+      <div id="notifPanel" style="display:none;position:absolute;top:60px;right:20px;width:320px;background:rgba(10,22,40,0.98);border:1px solid rgba(255,255,255,0.1);border-radius:12px;box-shadow:0 0 40px rgba(0,212,255,0.1);z-index:200;max-height:400px;overflow-y:auto">
+        <div style="padding:12px 16px;border-bottom:1px solid rgba(255,255,255,0.08);display:flex;justify-content:space-between;align-items:center">
+          <span style="font-weight:600;color:#f0f6ff">Notifications</span>
+          <button onclick="markAllRead()" style="background:none;border:none;color:#00d4ff;cursor:pointer;font-size:12px">Mark all read</button>
+        </div>
+        <div id="notifList"></div>
+      </div>
+    </div>
+  </div>
+  <div class="content">
+    <div style="text-align:center;max-width:500px">
+      <div class="check-icon" style="width:80px;height:80px;border-radius:50%;background:rgba(0,212,255,0.1);border:2px solid #00d4ff;display:flex;align-items:center;justify-content:center;margin:0 auto 24px;font-size:40px">✅</div>
+      <h1 style="font-size:28px;font-weight:700;margin-bottom:8px;color:var(--text)">Request Submitted Successfully!</h1>
+      <p style="color:var(--text-secondary);font-size:16px;margin-bottom:32px">Your request has been received and is being reviewed.</p>
+      <div style="background:var(--card-bg);border:1px solid var(--card-border);border-radius:12px;padding:24px;text-align:left;margin-bottom:24px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+          <span style="color:var(--text-secondary);font-size:13px">Ticket Number</span>
+          <span style="color:var(--cyan);font-weight:700;font-size:18px">#<%= String(request.id).padStart(6, '0') %></span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+          <span style="color:var(--text-secondary);font-size:13px">Service Type</span>
+          <span style="color:var(--text);font-weight:500"><%= request.service_type_name %></span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+          <span style="color:var(--text-secondary);font-size:13px">Urgency</span>
+          <span class="badge badge-<%= request.urgency %>"><%= request.urgency %></span>
+        </div>
+        <div style="border-top:1px solid var(--card-border);padding-top:12px;margin-top:12px">
+          <p style="color:var(--text-secondary);font-size:13px">We'll review your request and get back to you shortly.</p>
+          <p style="color:var(--cyan);font-size:13px;margin-top:4px;font-weight:600">Expected response: within 24 hours</p>
+        </div>
+      </div>
+      <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+        <a href="/portal/requests/<%= request.id %>" class="btn btn-primary">View Request</a>
+        <a href="/portal" class="btn btn-secondary">Back to Dashboard</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<nav class="bottom-nav">
+  <a href="/portal"><span class="nav-icon">📊</span>Dashboard</a>
+  <a href="/portal/requests/new"><span class="nav-icon">➕</span>New Request</a>
+  <a href="/portal/files"><span class="nav-icon">📁</span>Files</a>
+  <a href="/portal/documents"><span class="nav-icon">📄</span>Docs</a>
+</nav>
+
+<script>
+async function loadNotifications(){try{const r=await fetch('/portal/notifications');const d=await r.json();const u=d.filter(n=>!n.read);const b=document.getElementById('notifBadge');const l=document.getElementById('notifList');if(b){b.textContent=u.length;b.style.display=u.length>0?'flex':'none';}if(l){l.innerHTML=d.length===0?'<div style="padding:24px;text-align:center;color:#64748b">No notifications</div>':d.map(n=>'<div onclick="readNotif('+n.id+',\''+n.link+'\')" style="padding:12px 16px;border-bottom:1px solid rgba(255,255,255,0.05);cursor:pointer;background:'+(n.read?'transparent':'rgba(0,212,255,0.04)')+'"><div style="font-size:13px;font-weight:600;color:#f0f6ff">'+n.title+(n.read?'':' <span style="width:6px;height:6px;border-radius:50%;background:#00d4ff;display:inline-block;margin-left:4px"></span>')+'</div><div style="font-size:12px;color:#64748b;margin-top:2px">'+n.message+'</div><div style="font-size:11px;color:#475569;margin-top:4px">'+new Date(n.created_at).toLocaleDateString()+'</div></div>').join('');}}catch(e){}}
+function toggleNotifPanel(){const p=document.getElementById('notifPanel');if(p)p.style.display=p.style.display==='none'?'block':'none';}
+async function readNotif(id,link){await fetch('/portal/notifications/'+id+'/read',{method:'POST'});if(link)window.location.href=link;else loadNotifications();}
+async function markAllRead(){await fetch('/portal/notifications/read-all',{method:'POST'});loadNotifications();}
+document.addEventListener('DOMContentLoaded',loadNotifications);
+setInterval(loadNotifications,30000);
+document.addEventListener('click',e=>{const p=document.getElementById('notifPanel');const b=document.getElementById('notifBell');if(p&&b&&!b.contains(e.target)&&!p.contains(e.target)){p.style.display='none';}});
+if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js').catch(()=>{});}
+</script>
+</body>
+</html>

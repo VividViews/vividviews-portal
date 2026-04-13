@@ -26,6 +26,9 @@ async function migrate() {
         company_name TEXT NOT NULL,
         client_type TEXT NOT NULL DEFAULT 'standard',
         client_type_id INTEGER REFERENCES client_types(id) ON DELETE SET NULL,
+        onboarded INTEGER NOT NULL DEFAULT 0,
+        logo_url TEXT DEFAULT '',
+        brand_color TEXT DEFAULT '#00d4ff',
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       );
 
@@ -81,6 +84,8 @@ async function migrate() {
         status TEXT NOT NULL DEFAULT 'submitted' CHECK(status IN ('submitted','in_review','in_progress','complete')),
         is_emergency INTEGER NOT NULL DEFAULT 0,
         admin_notes TEXT DEFAULT '',
+        first_response_at DATETIME,
+        resolved_at DATETIME,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
       );
@@ -207,6 +212,55 @@ async function migrate() {
         note TEXT DEFAULT '',
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       );
+
+      CREATE TABLE IF NOT EXISTS password_resets (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        token TEXT NOT NULL UNIQUE,
+        expires_at DATETIME NOT NULL,
+        used INTEGER NOT NULL DEFAULT 0,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE TABLE IF NOT EXISTS notifications (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        title TEXT NOT NULL,
+        message TEXT NOT NULL,
+        link TEXT DEFAULT '',
+        read INTEGER NOT NULL DEFAULT 0,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE TABLE IF NOT EXISTS request_templates (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        client_id INTEGER NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+        name TEXT NOT NULL,
+        service_type_id INTEGER REFERENCES service_types(id) ON DELETE SET NULL,
+        description TEXT DEFAULT '',
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE TABLE IF NOT EXISTS announcements (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        title TEXT NOT NULL,
+        message TEXT NOT NULL,
+        target TEXT NOT NULL DEFAULT 'all',
+        created_by INTEGER REFERENCES users(id),
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE TABLE IF NOT EXISTS client_documents (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        client_id INTEGER NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+        filename TEXT NOT NULL,
+        original_name TEXT NOT NULL,
+        mimetype TEXT NOT NULL,
+        doc_type TEXT NOT NULL DEFAULT 'other',
+        description TEXT DEFAULT '',
+        uploaded_by INTEGER REFERENCES users(id),
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      );
     `);
   } else {
     await db.exec(`
@@ -282,6 +336,8 @@ async function migrate() {
         urgency TEXT NOT NULL DEFAULT 'low' CHECK(urgency IN ('low','medium','high','urgent')),
         status TEXT NOT NULL DEFAULT 'submitted' CHECK(status IN ('submitted','in_review','in_progress','complete')),
         admin_notes TEXT DEFAULT '',
+        first_response_at TIMESTAMPTZ,
+        resolved_at TIMESTAMPTZ,
         created_at TIMESTAMPTZ DEFAULT NOW(),
         updated_at TIMESTAMPTZ DEFAULT NOW()
       );
@@ -417,6 +473,55 @@ async function migrate() {
       );
 
       CREATE INDEX IF NOT EXISTS IDX_session_expire ON session (expire);
+
+      CREATE TABLE IF NOT EXISTS password_resets (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        token TEXT NOT NULL UNIQUE,
+        expires_at TIMESTAMPTZ NOT NULL,
+        used BOOLEAN NOT NULL DEFAULT FALSE,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      );
+
+      CREATE TABLE IF NOT EXISTS notifications (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        title TEXT NOT NULL,
+        message TEXT NOT NULL,
+        link TEXT DEFAULT '',
+        read BOOLEAN NOT NULL DEFAULT FALSE,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      );
+
+      CREATE TABLE IF NOT EXISTS request_templates (
+        id SERIAL PRIMARY KEY,
+        client_id INTEGER NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+        name TEXT NOT NULL,
+        service_type_id INTEGER REFERENCES service_types(id) ON DELETE SET NULL,
+        description TEXT DEFAULT '',
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      );
+
+      CREATE TABLE IF NOT EXISTS announcements (
+        id SERIAL PRIMARY KEY,
+        title TEXT NOT NULL,
+        message TEXT NOT NULL,
+        target TEXT NOT NULL DEFAULT 'all',
+        created_by INTEGER REFERENCES users(id),
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      );
+
+      CREATE TABLE IF NOT EXISTS client_documents (
+        id SERIAL PRIMARY KEY,
+        client_id INTEGER NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+        filename TEXT NOT NULL,
+        original_name TEXT NOT NULL,
+        mimetype TEXT NOT NULL,
+        doc_type TEXT NOT NULL DEFAULT 'other',
+        description TEXT DEFAULT '',
+        uploaded_by INTEGER REFERENCES users(id),
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      );
     `);
 
     // ALTER TABLE additions for PostgreSQL
@@ -427,6 +532,11 @@ async function migrate() {
     try { await db.exec("ALTER TABLE service_types ADD COLUMN IF NOT EXISTS default_urgency TEXT NOT NULL DEFAULT 'medium'"); } catch (e) { /* exists */ }
     try { await db.exec("ALTER TABLE clients ADD COLUMN IF NOT EXISTS client_type_id INTEGER REFERENCES client_types(id) ON DELETE SET NULL"); } catch (e) { /* exists */ }
     try { await db.exec("ALTER TABLE clients ADD COLUMN IF NOT EXISTS client_type TEXT NOT NULL DEFAULT 'standard'"); } catch (e) { /* exists */ }
+    try { await db.exec("ALTER TABLE clients ADD COLUMN IF NOT EXISTS onboarded BOOLEAN NOT NULL DEFAULT FALSE"); } catch (e) { /* exists */ }
+    try { await db.exec("ALTER TABLE clients ADD COLUMN IF NOT EXISTS logo_url TEXT DEFAULT ''"); } catch (e) { /* exists */ }
+    try { await db.exec("ALTER TABLE clients ADD COLUMN IF NOT EXISTS brand_color TEXT DEFAULT '#00d4ff'"); } catch (e) { /* exists */ }
+    try { await db.exec("ALTER TABLE service_requests ADD COLUMN IF NOT EXISTS first_response_at TIMESTAMPTZ"); } catch (e) { /* exists */ }
+    try { await db.exec("ALTER TABLE service_requests ADD COLUMN IF NOT EXISTS resolved_at TIMESTAMPTZ"); } catch (e) { /* exists */ }
   }
 
   // Seed default client types if empty

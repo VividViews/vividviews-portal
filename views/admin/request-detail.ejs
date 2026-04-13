@@ -3,6 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#00d4ff">
   <title><%= title %> — Vivid Views</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
@@ -380,6 +382,12 @@
 
     .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 99; }
     .overlay.active { display: block; }
+      @media (max-width: 768px) {
+      .card { overflow-x: auto; }
+      .content { padding: 12px; padding-bottom: 20px; }
+      .quick-actions { flex-direction: column; }
+      .detail-grid { grid-template-columns: 1fr; }
+    }
   </style>
 </head>
 <body>
@@ -407,6 +415,7 @@
     </a>
     <a href="/admin/inventory" class="<%= (typeof navActive !== 'undefined' ? navActive : active) === 'inventory' ? 'active' : '' %>"><span class="nav-icon">📦</span> Inventory</a>
     <a href="/admin/revenue" class="<%= active === 'revenue' ? 'active' : '' %>"><span class="nav-icon">💰</span> Revenue</a>
+    <a href="/admin/announcements" class="<%= active === 'announcements' ? 'active' : '' %>"><span class="nav-icon">📢</span> Announcements</a>
     <a href="/admin/settings" class="<%= active === 'settings' ? 'active' : '' %>"><span class="nav-icon">⚙️</span> Settings</a>
   </div>
   <div class="sidebar-footer">
@@ -556,6 +565,27 @@
           <div class="detail-label">Status</div>
           <div class="detail-value"><span class="badge badge-<%= request.status %>"><%= request.status.replace('_', ' ') %></span></div>
         </div>
+        <div class="detail-row">
+          <div class="detail-label">First Response</div>
+          <div class="detail-value"><%= request.first_response_at ? new Date(request.first_response_at).toLocaleString() : '<span style="color:#fbbf24">Pending</span>' %></div>
+        </div>
+        <div class="detail-row">
+          <div class="detail-label">Resolved</div>
+          <div class="detail-value"><%= request.resolved_at ? new Date(request.resolved_at).toLocaleString() : '<span style="color:var(--text-secondary)">Open</span>' %></div>
+        </div>
+        <% if (request.resolved_at) { %>
+        <div class="detail-row">
+          <div class="detail-label">Time to Resolve</div>
+          <div class="detail-value">
+            <%
+              var resolveMs = new Date(request.resolved_at).getTime() - new Date(request.created_at).getTime();
+              var resolveDays = Math.floor(resolveMs / (1000*60*60*24));
+              var resolveHours = Math.floor((resolveMs % (1000*60*60*24)) / (1000*60*60));
+            %>
+            <%= resolveDays > 0 ? resolveDays + 'd ' : '' %><%= resolveHours %>h
+          </div>
+        </div>
+        <% } %>
         <% if (isEmergency && emergency) { %>
         <div class="detail-row">
           <div class="detail-label">Emergency</div>
@@ -736,6 +766,7 @@
     });
   });
 </script>
+<script>if("serviceWorker" in navigator){navigator.serviceWorker.register("/sw.js").catch(()=>{});}</script>
 </body>
 </html>
 
