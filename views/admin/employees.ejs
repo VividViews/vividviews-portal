@@ -1,0 +1,52 @@
+<%- include('../partials/head', { title }) %>
+<%- include('../partials/sidebar-admin', { user, active: 'employees', stats: { pendingEmergencies: 0 } }) %>
+
+<div class="main">
+  <div class="topbar">
+    <button class="hamburger" onclick="toggleSidebar()">☰</button>
+    <h2>👥 Employees</h2>
+    <a href="/admin/employees/new" class="btn btn-primary btn-sm">➕ New Employee</a>
+  </div>
+  <div class="content">
+    <div class="card">
+      <table>
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Role</th>
+            <th>Status</th>
+            <th>Hourly Rate</th>
+            <th>Assignments</th>
+            <th>Joined</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% employees.forEach(e => { %>
+          <tr style="cursor:pointer" onclick="window.location='/admin/employees/<%= e.id %>'">
+            <td><a href="/admin/employees/<%= e.id %>"><%= e.name %></a></td>
+            <td style="color:var(--text-secondary)"><%= e.email %></td>
+            <td><%= e.role_name %></td>
+            <td>
+              <span class="badge" style="background:<%= e.status === 'active' ? 'rgba(16,185,129,0.2)' : e.status === 'pending' ? 'rgba(245,158,11,0.2)' : 'rgba(100,116,139,0.2)' %>;color:<%= e.status === 'active' ? '#10b981' : e.status === 'pending' ? '#fbbf24' : '#94a3b8' %>"><%= e.status %></span>
+            </td>
+            <td style="color:var(--cyan)">$<%= parseFloat(e.hourly_rate).toFixed(2) %>/hr</td>
+            <td><%= e.assignment_count %></td>
+            <td style="color:var(--text-secondary)"><%= new Date(e.created_at).toLocaleDateString() %></td>
+          </tr>
+          <% }) %>
+          <% if (employees.length === 0) { %>
+          <tr><td colspan="7">
+            <div class="empty-state">
+              <div class="icon">👥</div>
+              <p>No employees yet. Add your first one!</p>
+            </div>
+          </td></tr>
+          <% } %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<%- include('../partials/foot') %>

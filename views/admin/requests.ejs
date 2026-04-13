@@ -1,5 +1,5 @@
 <%- include('../partials/head', { title }) %>
-<%- include('../partials/sidebar-admin', { user, active: 'requests' }) %>
+<%- include('../partials/sidebar-admin', { user, active: 'requests', stats: { pendingEmergencies: 0 } }) %>
 
 <div class="main">
   <div class="topbar">
@@ -30,31 +30,49 @@
             <option value="<%= c.id %>" <%= filters.client_id == c.id ? 'selected' : '' %>><%= c.company_name %></option>
           <% }) %>
         </select>
+        <select name="site_id" onchange="this.form.submit()">
+          <option value="">All Sites</option>
+          <% allSites.forEach(s => { %>
+            <option value="<%= s.id %>" <%= filters.site_id == s.id ? 'selected' : '' %>><%= s.site_name %></option>
+          <% }) %>
+        </select>
       </form>
       <table>
         <thead>
           <tr>
             <th>ID</th>
             <th>Client</th>
+            <th>Site</th>
             <th>Service</th>
             <th>Urgency</th>
             <th>Status</th>
+            <th>Days Open</th>
             <th>Date</th>
           </tr>
         </thead>
         <tbody>
-          <% requests.forEach(r => { %>
-          <tr style="cursor:pointer" onclick="window.location='/admin/requests/<%= r.id %>'">
-            <td><a href="/admin/requests/<%= r.id %>">#<%= r.id %></a></td>
+          <% requests.forEach(r => {
+            const daysOpen = Math.floor((Date.now() - new Date(r.created_at).getTime()) / 86400000);
+            const isEmergency = r.is_emergency === true || r.is_emergency === 1;
+          %>
+          <tr style="cursor:pointer;<%= isEmergency ? 'box-shadow:inset 0 0 20px rgba(239,68,68,0.06);' : '' %>" onclick="window.location='/admin/requests/<%= r.id %>'">
+            <td>
+              <a href="/admin/requests/<%= r.id %>">#<%= r.id %></a>
+              <% if (isEmergency) { %>
+                <span class="badge badge-urgent" style="font-size:9px;padding:1px 5px;margin-left:4px">🚨</span>
+              <% } %>
+            </td>
             <td><%= r.company_name %></td>
+            <td style="color:var(--text-secondary)"><%= r.site_name || '—' %></td>
             <td><%= r.service_type_name %></td>
             <td><span class="badge badge-<%= r.urgency %>"><%= r.urgency %></span></td>
             <td><span class="badge badge-<%= r.status %>"><%= r.status.replace('_', ' ') %></span></td>
+            <td><%= r.status === 'complete' ? '—' : daysOpen + 'd' %></td>
             <td style="color:var(--text-secondary)"><%= new Date(r.created_at).toLocaleDateString() %></td>
           </tr>
           <% }) %>
           <% if (requests.length === 0) { %>
-          <tr><td colspan="6" style="text-align:center;padding:32px;color:var(--text-secondary)">No requests match your filters</td></tr>
+          <tr><td colspan="8" style="text-align:center;padding:32px;color:var(--text-secondary)">No requests match your filters</td></tr>
           <% } %>
         </tbody>
       </table>

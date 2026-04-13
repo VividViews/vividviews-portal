@@ -1,0 +1,107 @@
+<%- include('../partials/head', { title }) %>
+
+<style>
+  .sidebar-nav a.active { background: rgba(124,58,237,0.08) !important; color: #a78bfa !important; border-left-color: #a78bfa !important; }
+  .sidebar-nav a:hover { background: rgba(124,58,237,0.05) !important; }
+  .sidebar-monogram { background: linear-gradient(135deg, #7c3aed, #a78bfa) !important; box-shadow: 0 0 20px rgba(124,58,237,0.3) !important; }
+  .sidebar-brand-text small { color: #a78bfa !important; }
+</style>
+
+<nav class="sidebar">
+  <div class="sidebar-brand">
+    <div class="sidebar-monogram">VV</div>
+    <div class="sidebar-brand-text"><h1>Vivid Views</h1><small>Employee Portal</small></div>
+  </div>
+  <div class="sidebar-nav">
+    <a href="/employee"><span class="nav-icon">📊</span> Dashboard</a>
+    <a href="/employee/requests"><span class="nav-icon">📋</span> Requests</a>
+    <a href="/employee/emergency" class="active"><span class="nav-icon">⚠️</span> Emergency</a>
+  </div>
+  <div class="sidebar-footer">
+    <div class="user-avatar" style="background:linear-gradient(135deg,#7c3aed,#a78bfa)"><%= employee.name.charAt(0).toUpperCase() %></div>
+    <div class="user-info"><strong><%= employee.name %></strong><span><%= employee.role_name %></span></div>
+    <form method="POST" action="/employee/logout" style="margin:0"><button type="submit" class="btn-logout">↗</button></form>
+  </div>
+</nav>
+
+<div class="main">
+  <div class="topbar">
+    <button class="hamburger" onclick="toggleSidebar()">☰</button>
+    <h2>⚠️ Emergency Requests</h2>
+    <div></div>
+  </div>
+  <div class="content">
+    <% if (emergencies.length === 0) { %>
+      <div class="detail-section" style="text-align:center;padding:60px 20px">
+        <div style="font-size:64px;margin-bottom:16px;opacity:0.3">✅</div>
+        <h3 style="color:var(--text);margin-bottom:8px">No Active Emergencies</h3>
+        <p style="color:var(--text-secondary);font-size:14px">You have no emergency requests assigned to you right now.</p>
+      </div>
+    <% } else { %>
+      <% emergencies.forEach(em => { %>
+      <div class="detail-section" style="border-color:rgba(239,68,68,0.2);margin-bottom:24px">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px">
+          <div>
+            <h3 style="color:#ef4444;margin-bottom:4px">🚨 Emergency #<%= em.request_id %></h3>
+            <div style="color:var(--text-secondary);font-size:13px"><%= em.company_name %> — <%= em.service_type_name %></div>
+          </div>
+          <span class="badge badge-<%= em.status === 'dispatched' ? 'in_progress' : 'in_review' %>"><%= em.status %></span>
+        </div>
+
+        <% if (em.site_name) { %>
+        <div style="background:rgba(255,255,255,0.03);border:1px solid var(--card-border);border-radius:8px;padding:12px;margin-bottom:16px">
+          <strong style="color:var(--text)">📍 <%= em.site_name %></strong>
+          <% if (em.site_address) { %>
+            <div style="color:var(--text-secondary);font-size:13px;margin-top:4px"><%= em.site_address %><%= em.site_city ? ', ' + em.site_city : '' %><%= em.site_state ? ' ' + em.site_state : '' %></div>
+          <% } %>
+        </div>
+        <% } %>
+
+        <div style="margin-bottom:16px">
+          <div class="description-text"><%= em.description %></div>
+        </div>
+
+        <!-- Clock Actions -->
+        <div style="display:flex;gap:12px;align-items:center;padding:16px;background:rgba(255,255,255,0.02);border:1px solid var(--card-border);border-radius:8px;margin-bottom:16px">
+          <% if (!em.activeLog) { %>
+            <form method="POST" action="/employee/emergency/<%= em.id %>/clockin">
+              <button type="submit" class="btn btn-primary" style="background:linear-gradient(135deg,#10b981,#34d399)">🕐 Clock In</button>
+            </form>
+            <span style="color:var(--text-secondary);font-size:14px">Not clocked in</span>
+          <% } else { %>
+            <form method="POST" action="/employee/emergency/<%= em.id %>/clockout">
+              <button type="submit" class="btn btn-danger">🕐 Clock Out</button>
+            </form>
+            <%
+              const clockedInAt = new Date(em.activeLog.clocked_in_at);
+              const elapsed = Math.floor((Date.now() - clockedInAt.getTime()) / 60000);
+              const hrs = Math.floor(elapsed / 60);
+              const mins = elapsed % 60;
+            %>
+            <span style="color:#10b981;font-size:14px;font-weight:600">🟢 Clocked in — <%= hrs %>h <%= mins %>m elapsed</span>
+          <% } %>
+        </div>
+
+        <!-- Time Logs -->
+        <% if (em.logs && em.logs.length > 0) { %>
+        <h4 style="color:var(--text);margin-bottom:8px;font-size:14px">Clock Log</h4>
+        <table style="margin-bottom:0">
+          <thead><tr><th>Clocked In</th><th>Clocked Out</th><th>Total</th></tr></thead>
+          <tbody>
+            <% em.logs.forEach(log => { %>
+            <tr>
+              <td style="font-size:13px"><%= new Date(log.clocked_in_at).toLocaleString() %></td>
+              <td style="font-size:13px"><%= log.clocked_out_at ? new Date(log.clocked_out_at).toLocaleString() : '🟢 Active' %></td>
+              <td><%= log.total_minutes ? Math.floor(log.total_minutes / 60) + 'h ' + (log.total_minutes % 60) + 'm' : '—' %></td>
+            </tr>
+            <% }) %>
+          </tbody>
+        </table>
+        <% } %>
+      </div>
+      <% }) %>
+    <% } %>
+  </div>
+</div>
+
+<%- include('../partials/foot') %>

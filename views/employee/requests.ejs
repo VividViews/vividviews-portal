@@ -1,0 +1,62 @@
+<%- include('../partials/head', { title }) %>
+
+<style>
+  .sidebar-nav a.active { background: rgba(124,58,237,0.08) !important; color: #a78bfa !important; border-left-color: #a78bfa !important; }
+  .sidebar-nav a:hover { background: rgba(124,58,237,0.05) !important; }
+  .sidebar-monogram { background: linear-gradient(135deg, #7c3aed, #a78bfa) !important; box-shadow: 0 0 20px rgba(124,58,237,0.3) !important; }
+  .sidebar-brand-text small { color: #a78bfa !important; }
+</style>
+
+<nav class="sidebar">
+  <div class="sidebar-brand">
+    <div class="sidebar-monogram">VV</div>
+    <div class="sidebar-brand-text"><h1>Vivid Views</h1><small>Employee Portal</small></div>
+  </div>
+  <div class="sidebar-nav">
+    <a href="/employee"><span class="nav-icon">📊</span> Dashboard</a>
+    <a href="/employee/requests" class="active"><span class="nav-icon">📋</span> Requests</a>
+    <a href="/employee/emergency"><span class="nav-icon">⚠️</span> Emergency</a>
+  </div>
+  <div class="sidebar-footer">
+    <div class="user-avatar" style="background:linear-gradient(135deg,#7c3aed,#a78bfa)"><%= employee.name.charAt(0).toUpperCase() %></div>
+    <div class="user-info"><strong><%= employee.name %></strong><span><%= employee.role_name %></span></div>
+    <form method="POST" action="/employee/logout" style="margin:0"><button type="submit" class="btn-logout">↗</button></form>
+  </div>
+</nav>
+
+<div class="main">
+  <div class="topbar">
+    <button class="hamburger" onclick="toggleSidebar()">☰</button>
+    <h2>Open Requests</h2>
+    <div></div>
+  </div>
+  <div class="content">
+    <div class="card">
+      <table>
+        <thead>
+          <tr><th>Ticket #</th><th>Client</th><th>Site</th><th>Service Type</th><th>Status</th><th>Days Open</th><th>Urgency</th></tr>
+        </thead>
+        <tbody>
+          <% requests.forEach(r => {
+            const daysOpen = Math.floor((Date.now() - new Date(r.created_at).getTime()) / 86400000);
+          %>
+          <tr style="cursor:pointer" onclick="window.location='/employee/requests/<%= r.id %>'">
+            <td><a href="/employee/requests/<%= r.id %>">#<%= r.id %></a></td>
+            <td><%= r.company_name %></td>
+            <td><%= r.site_name || '—' %></td>
+            <td><%= r.service_type_name %></td>
+            <td><span class="badge badge-<%= r.status %>"><%= r.status.replace('_',' ') %></span></td>
+            <td><%= daysOpen %>d</td>
+            <td><span class="badge badge-<%= r.urgency %>"><%= r.urgency %></span></td>
+          </tr>
+          <% }) %>
+          <% if (requests.length === 0) { %>
+          <tr><td colspan="7" style="text-align:center;padding:32px;color:var(--text-secondary)">No open requests for your assigned sites</td></tr>
+          <% } %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<%- include('../partials/foot') %>

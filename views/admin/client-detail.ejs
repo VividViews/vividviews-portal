@@ -1,5 +1,5 @@
 <%- include('../partials/head', { title }) %>
-<%- include('../partials/sidebar-admin', { user, active: 'clients' }) %>
+<%- include('../partials/sidebar-admin', { user, active: 'clients', stats: { pendingEmergencies: 0 } }) %>
 
 <div class="main">
   <div class="topbar">
@@ -7,6 +7,7 @@
     <h2><%= client ? client.company_name : 'New Client' %></h2>
     <div>
       <% if (client) { %>
+        <a href="/admin/clients/<%= client.id %>/edit" class="btn btn-secondary btn-sm">✏️ Edit</a>
         <button class="btn btn-danger btn-sm" onclick="deleteResource('/admin/clients/<%= client.id %>', '/admin/clients')">Delete Client</button>
       <% } %>
     </div>
@@ -39,9 +40,11 @@
           </div>
           <div class="form-group">
             <label>Client Type</label>
-            <select name="client_type" class="form-control">
-              <option value="standard">Standard</option>
-              <option value="carwash">Car Wash</option>
+            <select name="client_type_id" class="form-control">
+              <option value="">— None —</option>
+              <% clientTypes.forEach(ct => { %>
+                <option value="<%= ct.id %>"><%= ct.name %></option>
+              <% }) %>
             </select>
           </div>
           <button type="submit" class="btn btn-primary">Create Client</button>
@@ -49,181 +52,385 @@
         </form>
       </div>
     <% } else { %>
-      <div class="detail-grid">
-        <div>
-          <!-- Client Info -->
-          <div class="detail-section">
-            <h3>Client Information</h3>
-            <div class="detail-row">
-              <div class="detail-label">Company</div>
-              <div class="detail-value"><%= client.company_name %></div>
-            </div>
-            <div class="detail-row">
-              <div class="detail-label">Contact</div>
-              <div class="detail-value"><%= clientUser.name %></div>
-            </div>
-            <div class="detail-row">
-              <div class="detail-label">Email</div>
-              <div class="detail-value"><%= clientUser.email %></div>
-            </div>
-            <div class="detail-row">
-              <div class="detail-label">Type</div>
-              <div class="detail-value"><span class="badge" style="background:rgba(0,212,255,0.15);color:#00d4ff"><%= client.client_type === 'carwash' ? 'Car Wash' : 'Standard' %></span></div>
-            </div>
-            <div class="detail-row">
-              <div class="detail-label">Joined</div>
-              <div class="detail-value"><%= new Date(client.created_at).toLocaleDateString() %></div>
+
+      <!-- Tab Navigation -->
+      <style>
+        .tab-nav { display:flex; gap:4px; margin-bottom:24px; border-bottom:1px solid var(--card-border); padding-bottom:0; }
+        .tab-btn { padding:10px 20px; background:none; border:none; color:var(--text-secondary); font-size:14px; font-weight:500; cursor:pointer; border-bottom:2px solid transparent; transition:all 0.2s; font-family:inherit; }
+        .tab-btn:hover { color:var(--text); }
+        .tab-btn.active { color:var(--cyan); border-bottom-color:var(--cyan); }
+        .tab-content { display:none; }
+        .tab-content.active { display:block; }
+      </style>
+
+      <div class="tab-nav">
+        <button class="tab-btn active" onclick="showTab('info')">Client Info</button>
+        <button class="tab-btn" onclick="showTab('users')">Users (<%= clientUsers.length %>)</button>
+        <button class="tab-btn" onclick="showTab('sites')">Sites (<%= sites.length %>)</button>
+        <button class="tab-btn" onclick="showTab('services')">Service Types (<%= serviceTypes.length %>)</button>
+        <% const clientTypeName = clientTypes.find(ct => ct.id === client.client_type_id); %>
+        <% if (clientTypeName && clientTypeName.name === 'Car Wash') { %>
+          <button class="tab-btn" onclick="showTab('brands')">Car Wash Brands</button>
+        <% } %>
+        <button class="tab-btn" onclick="showTab('notes')">Notes</button>
+        <button class="tab-btn" onclick="showTab('revenue')">Revenue</button>
+        <button class="tab-btn" onclick="showTab('requests')">Requests (<%= requests.length %>)</button>
+      </div>
+
+      <!-- Tab: Client Info -->
+      <div class="tab-content active" id="tab-info">
+        <div class="detail-section" style="max-width:700px">
+          <h3>Client Information</h3>
+          <div class="detail-row">
+            <div class="detail-label">Company</div>
+            <div class="detail-value"><%= client.company_name %></div>
+          </div>
+          <div class="detail-row">
+            <div class="detail-label">Contact</div>
+            <div class="detail-value"><%= clientUser.name %></div>
+          </div>
+          <div class="detail-row">
+            <div class="detail-label">Email</div>
+            <div class="detail-value"><%= clientUser.email %></div>
+          </div>
+          <div class="detail-row">
+            <div class="detail-label">Type</div>
+            <div class="detail-value">
+              <% const ct = clientTypes.find(t => t.id === client.client_type_id); %>
+              <span class="badge" style="background:rgba(0,212,255,0.15);color:#00d4ff"><%= ct ? ct.name : (client.client_type || 'Standard') %></span>
             </div>
           </div>
-
-          <!-- Requests -->
-          <div class="card">
-            <div class="card-header">
-              <h3>Service Requests (<%= requests.length %>)</h3>
-            </div>
-            <table>
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>Service</th>
-                  <th>Urgency</th>
-                  <th>Status</th>
-                  <th>Date</th>
-                </tr>
-              </thead>
-              <tbody>
-                <% requests.forEach(r => { %>
-                <tr style="cursor:pointer" onclick="window.location='/admin/requests/<%= r.id %>'">
-                  <td><a href="/admin/requests/<%= r.id %>">#<%= r.id %></a></td>
-                  <td><%= r.service_type_name %></td>
-                  <td><span class="badge badge-<%= r.urgency %>"><%= r.urgency %></span></td>
-                  <td><span class="badge badge-<%= r.status %>"><%= r.status.replace('_', ' ') %></span></td>
-                  <td style="color:var(--text-secondary)"><%= new Date(r.created_at).toLocaleDateString() %></td>
-                </tr>
-                <% }) %>
-                <% if (requests.length === 0) { %>
-                <tr><td colspan="5" style="text-align:center;padding:24px;color:var(--text-secondary)">No requests yet</td></tr>
-                <% } %>
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <div>
-          <!-- Service Types -->
-          <div class="detail-section">
-            <h3>Service Types</h3>
-            <div style="margin-bottom: 16px;">
-              <% serviceTypes.forEach(st => { %>
-                <span class="tag">
-                  <%= st.name %>
-                  <button onclick="deleteResource('/admin/clients/<%= client.id %>/service-types/<%= st.id %>', '/admin/clients/<%= client.id %>')" title="Remove">&times;</button>
-                </span>
-              <% }) %>
-              <% if (serviceTypes.length === 0) { %>
-                <p style="color:var(--text-secondary);font-size:14px">No service types assigned</p>
-              <% } %>
-            </div>
-            <form method="POST" action="/admin/clients/<%= client.id %>/service-types" class="inline-form">
-              <input type="text" name="name" placeholder="Add service type..." required>
-              <button type="submit" class="btn btn-primary btn-sm">Add</button>
-            </form>
-          </div>
-
-          <!-- Private Notes -->
-          <div class="detail-section" style="border-color:rgba(245,158,11,0.2);">
-            <h3>🔒 Private Notes</h3>
-            <% if (notes && notes.length > 0) { %>
-              <div style="margin-bottom:16px;display:flex;flex-direction:column;gap:8px">
-                <% notes.forEach(n => { %>
-                <div style="background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.15);border-radius:8px;padding:12px;position:relative">
-                  <div style="font-size:14px;color:var(--text);white-space:pre-wrap"><%= n.note %></div>
-                  <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">
-                    <span style="font-size:11px;color:var(--text-secondary)"><%= new Date(n.created_at).toLocaleString() %></span>
-                    <button onclick="deleteResource('/admin/clients/<%= client.id %>/notes/<%= n.id %>', '/admin/clients/<%= client.id %>')" style="background:none;border:none;color:#ef4444;cursor:pointer;font-size:12px;opacity:0.6" title="Delete note">🗑</button>
-                  </div>
-                </div>
-                <% }) %>
-              </div>
-            <% } else { %>
-              <p style="color:var(--text-secondary);font-size:14px;margin-bottom:16px">No notes yet</p>
-            <% } %>
-            <form method="POST" action="/admin/clients/<%= client.id %>/notes">
-              <div class="form-group" style="margin-bottom:8px">
-                <textarea name="note" class="form-control" rows="3" placeholder="Add a private note..." required style="background:rgba(245,158,11,0.04);border-color:rgba(245,158,11,0.15)"></textarea>
-              </div>
-              <button type="submit" class="btn btn-sm" style="background:rgba(245,158,11,0.15);color:#fbbf24;border:1px solid rgba(245,158,11,0.3);width:100%">Add Note</button>
-            </form>
-          </div>
-
-          <!-- Car Wash Brands & Sites -->
-          <div class="detail-section">
-            <h3>🚗 Car Wash Brands & Sites</h3>
-            <% if (!brands || brands.length === 0) { %>
-              <p style="color:var(--text-secondary);font-size:14px;margin-bottom:12px">No brands yet</p>
-            <% } else { %>
-              <% brands.forEach(brand => { %>
-                <div style="border:1px solid var(--card-border);border-radius:8px;padding:16px;margin-bottom:16px;background:rgba(255,255,255,0.02)">
-                  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-                    <h4 style="margin:0;color:var(--text)"><%= brand.brand_name %></h4>
-                    <button class="btn btn-danger btn-sm" onclick="deleteResource('/admin/clients/<%= client.id %>/brands/<%= brand.id %>', '/admin/clients/<%= client.id %>')">Delete</button>
-                  </div>
-                  <% if (brand.sites && brand.sites.length > 0) { %>
-                  <table style="margin-bottom:12px">
-                    <thead>
-                      <tr>
-                        <th>Site</th>
-                        <th>City</th>
-                        <th>State</th>
-                        <th>Status</th>
-                        <th>Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <% brand.sites.forEach(site => { %>
-                      <tr>
-                        <td><%= site.site_name %></td>
-                        <td><%= site.city || '—' %></td>
-                        <td><%= site.state || '—' %></td>
-                        <td><span class="badge badge-<%= site.status === 'active' ? 'complete' : 'submitted' %>"><%= site.status %></span></td>
-                        <td style="white-space:nowrap">
-                          <form method="POST" action="/admin/clients/<%= client.id %>/brands/<%= brand.id %>/sites/<%= site.id %>/status" style="display:inline">
-                            <button type="submit" class="btn btn-secondary btn-sm"><%= site.status === 'active' ? '⏸' : '▶' %></button>
-                          </form>
-                          <button class="btn btn-danger btn-sm" onclick="deleteResource('/admin/clients/<%= client.id %>/brands/<%= brand.id %>/sites/<%= site.id %>', '/admin/clients/<%= client.id %>')">🗑</button>
-                        </td>
-                      </tr>
-                      <% }) %>
-                    </tbody>
-                  </table>
-                  <% } else { %>
-                    <p style="color:var(--text-secondary);font-size:13px;margin-bottom:12px">No sites yet</p>
-                  <% } %>
-                  <details style="margin-top:8px">
-                    <summary style="cursor:pointer;color:var(--cyan);font-size:14px">+ Add Site</summary>
-                    <form method="POST" action="/admin/clients/<%= client.id %>/brands/<%= brand.id %>/sites" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
-                      <input type="text" name="site_name" placeholder="Site name" required class="form-control" style="flex:1;min-width:140px">
-                      <input type="text" name="address" placeholder="Address" class="form-control" style="flex:1;min-width:140px">
-                      <input type="text" name="city" placeholder="City" class="form-control" style="width:120px">
-                      <input type="text" name="state" placeholder="State" class="form-control" style="width:60px">
-                      <button type="submit" class="btn btn-primary btn-sm">Add</button>
-                    </form>
-                  </details>
-                </div>
-              <% }) %>
-            <% } %>
-            <details style="margin-top:8px">
-              <summary style="cursor:pointer;color:var(--cyan);font-weight:600">+ Add Brand</summary>
-              <form method="POST" action="/admin/clients/<%= client.id %>/brands" class="inline-form" style="margin-top:8px">
-                <input type="text" name="brand_name" placeholder="Brand name..." required>
-                <button type="submit" class="btn btn-primary btn-sm">Add</button>
-              </form>
-            </details>
+          <div class="detail-row">
+            <div class="detail-label">Joined</div>
+            <div class="detail-value"><%= new Date(client.created_at).toLocaleDateString() %></div>
           </div>
         </div>
       </div>
+
+      <!-- Tab: Users -->
+      <div class="tab-content" id="tab-users">
+        <div class="detail-section">
+          <h3>Client Users</h3>
+          <table>
+            <thead>
+              <tr><th>Name</th><th>Email</th><th>Access Level</th><th>Site</th><th>Actions</th></tr>
+            </thead>
+            <tbody>
+              <% clientUsers.forEach(cu => { %>
+              <tr>
+                <td><%= cu.name %></td>
+                <td style="color:var(--text-secondary)"><%= cu.email %></td>
+                <td><span class="badge badge-<%= cu.access_level === 'owner' ? 'in_progress' : cu.access_level === 'regional' ? 'in_review' : 'submitted' %>"><%= cu.access_level || 'owner' %></span></td>
+                <td><%= cu.site_name || 'All sites' %></td>
+                <td>
+                  <% if (cu.id !== client.user_id) { %>
+                    <button class="btn btn-danger btn-sm" onclick="deleteResource('/admin/clients/<%= client.id %>/users/<%= cu.id %>', '/admin/clients/<%= client.id %>')">🗑</button>
+                  <% } else { %>
+                    <span style="color:var(--text-secondary);font-size:12px">Primary</span>
+                  <% } %>
+                </td>
+              </tr>
+              <% }) %>
+            </tbody>
+          </table>
+
+          <details style="margin-top:16px">
+            <summary style="cursor:pointer;color:var(--cyan);font-weight:600">+ Add User</summary>
+            <form method="POST" action="/admin/clients/<%= client.id %>/users" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;align-items:flex-end">
+              <div class="form-group" style="margin-bottom:0;flex:1;min-width:150px">
+                <label>Name</label>
+                <input type="text" name="name" class="form-control" required>
+              </div>
+              <div class="form-group" style="margin-bottom:0;flex:1;min-width:180px">
+                <label>Email</label>
+                <input type="email" name="email" class="form-control" required>
+              </div>
+              <div class="form-group" style="margin-bottom:0;width:140px">
+                <label>Password</label>
+                <input type="password" name="password" class="form-control" required minlength="6">
+              </div>
+              <div class="form-group" style="margin-bottom:0;width:140px">
+                <label>Access Level</label>
+                <select name="access_level" class="form-control">
+                  <option value="owner">Owner</option>
+                  <option value="regional">Regional</option>
+                  <option value="site">Site</option>
+                </select>
+              </div>
+              <div class="form-group" style="margin-bottom:0;width:160px">
+                <label>Site (for site-level)</label>
+                <select name="site_id" class="form-control">
+                  <option value="">All Sites</option>
+                  <% sites.forEach(s => { %>
+                    <option value="<%= s.id %>"><%= s.site_name %></option>
+                  <% }) %>
+                </select>
+              </div>
+              <button type="submit" class="btn btn-primary btn-sm">Add User</button>
+            </form>
+          </details>
+        </div>
+      </div>
+
+      <!-- Tab: Sites -->
+      <div class="tab-content" id="tab-sites">
+        <div class="detail-section">
+          <h3>Client Sites</h3>
+          <% if (sites.length > 0) { %>
+          <table>
+            <thead>
+              <tr><th>Name</th><th>Address</th><th>City</th><th>State</th><th>Manager</th><th>Status</th><th>Actions</th></tr>
+            </thead>
+            <tbody>
+              <% sites.forEach(s => { %>
+              <tr style="cursor:pointer" onclick="window.location='/admin/clients/<%= client.id %>/sites/<%= s.id %>'">
+                <td><a href="/admin/clients/<%= client.id %>/sites/<%= s.id %>"><%= s.site_name %></a></td>
+                <td style="color:var(--text-secondary)"><%= s.address || '—' %></td>
+                <td><%= s.city || '—' %></td>
+                <td><%= s.state || '—' %></td>
+                <td><%= s.site_manager_name || '—' %></td>
+                <td><span class="badge badge-<%= s.status === 'active' ? 'complete' : 'submitted' %>"><%= s.status %></span></td>
+                <td>
+                  <button class="btn btn-danger btn-sm" onclick="event.stopPropagation();deleteResource('/admin/clients/<%= client.id %>/sites/<%= s.id %>', '/admin/clients/<%= client.id %>')">🗑</button>
+                </td>
+              </tr>
+              <% }) %>
+            </tbody>
+          </table>
+          <% } else { %>
+            <p style="color:var(--text-secondary);font-size:14px;margin-bottom:16px">No sites yet</p>
+          <% } %>
+
+          <details style="margin-top:16px">
+            <summary style="cursor:pointer;color:var(--cyan);font-weight:600">+ Add Site</summary>
+            <form method="POST" action="/admin/clients/<%= client.id %>/sites" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;align-items:flex-end">
+              <div class="form-group" style="margin-bottom:0;flex:1;min-width:180px">
+                <label>Site Name</label>
+                <input type="text" name="site_name" class="form-control" required>
+              </div>
+              <div class="form-group" style="margin-bottom:0;flex:1;min-width:180px">
+                <label>Address</label>
+                <input type="text" name="address" class="form-control">
+              </div>
+              <div class="form-group" style="margin-bottom:0;width:120px">
+                <label>City</label>
+                <input type="text" name="city" class="form-control">
+              </div>
+              <div class="form-group" style="margin-bottom:0;width:60px">
+                <label>State</label>
+                <input type="text" name="state" class="form-control" maxlength="2">
+              </div>
+              <div class="form-group" style="margin-bottom:0;width:80px">
+                <label>Zip</label>
+                <input type="text" name="zip" class="form-control">
+              </div>
+              <div class="form-group" style="margin-bottom:0;flex:1;min-width:150px">
+                <label>Manager Name</label>
+                <input type="text" name="site_manager_name" class="form-control">
+              </div>
+              <div class="form-group" style="margin-bottom:0;width:140px">
+                <label>Manager Phone</label>
+                <input type="text" name="site_manager_phone" class="form-control">
+              </div>
+              <div class="form-group" style="margin-bottom:0;flex:1;min-width:180px">
+                <label>Manager Email</label>
+                <input type="email" name="site_manager_email" class="form-control">
+              </div>
+              <button type="submit" class="btn btn-primary btn-sm">Add Site</button>
+            </form>
+          </details>
+        </div>
+      </div>
+
+      <!-- Tab: Service Types -->
+      <div class="tab-content" id="tab-services">
+        <div class="detail-section">
+          <h3>Service Types</h3>
+          <div style="margin-bottom:16px">
+            <% serviceTypes.forEach(st => { %>
+              <div class="tag" style="display:inline-flex;align-items:center;gap:8px;margin-bottom:4px">
+                <span><%= st.name %></span>
+                <span class="badge badge-<%= st.default_urgency || 'medium' %>" style="font-size:10px;padding:2px 6px"><%= st.default_urgency || 'medium' %></span>
+                <button onclick="deleteResource('/admin/clients/<%= client.id %>/service-types/<%= st.id %>', '/admin/clients/<%= client.id %>')" title="Remove">&times;</button>
+              </div>
+            <% }) %>
+            <% if (serviceTypes.length === 0) { %>
+              <p style="color:var(--text-secondary);font-size:14px">No service types assigned</p>
+            <% } %>
+          </div>
+          <form method="POST" action="/admin/clients/<%= client.id %>/service-types" style="display:flex;gap:8px;align-items:flex-end">
+            <div class="form-group" style="margin-bottom:0;flex:1">
+              <label>Service Type Name</label>
+              <input type="text" name="name" class="form-control" placeholder="Add service type..." required>
+            </div>
+            <div class="form-group" style="margin-bottom:0;width:140px">
+              <label>Default Urgency</label>
+              <select name="default_urgency" class="form-control">
+                <option value="low">Low</option>
+                <option value="medium" selected>Medium</option>
+                <option value="high">High</option>
+                <option value="urgent">Urgent</option>
+              </select>
+            </div>
+            <button type="submit" class="btn btn-primary btn-sm">Add</button>
+          </form>
+        </div>
+      </div>
+
+      <!-- Tab: Car Wash Brands -->
+      <div class="tab-content" id="tab-brands">
+        <div class="detail-section">
+          <h3>🚗 Car Wash Brands & Sites</h3>
+          <% if (!brands || brands.length === 0) { %>
+            <p style="color:var(--text-secondary);font-size:14px;margin-bottom:12px">No brands yet</p>
+          <% } else { %>
+            <% brands.forEach(brand => { %>
+              <div style="border:1px solid var(--card-border);border-radius:8px;padding:16px;margin-bottom:16px;background:rgba(255,255,255,0.02)">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+                  <h4 style="margin:0;color:var(--text)"><%= brand.brand_name %></h4>
+                  <button class="btn btn-danger btn-sm" onclick="deleteResource('/admin/clients/<%= client.id %>/brands/<%= brand.id %>', '/admin/clients/<%= client.id %>')">Delete</button>
+                </div>
+                <% if (brand.sites && brand.sites.length > 0) { %>
+                <table style="margin-bottom:12px">
+                  <thead><tr><th>Site</th><th>City</th><th>State</th><th>Status</th><th>Actions</th></tr></thead>
+                  <tbody>
+                    <% brand.sites.forEach(site => { %>
+                    <tr>
+                      <td><%= site.site_name %></td>
+                      <td><%= site.city || '—' %></td>
+                      <td><%= site.state || '—' %></td>
+                      <td><span class="badge badge-<%= site.status === 'active' ? 'complete' : 'submitted' %>"><%= site.status %></span></td>
+                      <td style="white-space:nowrap">
+                        <form method="POST" action="/admin/clients/<%= client.id %>/brands/<%= brand.id %>/sites/<%= site.id %>/status" style="display:inline">
+                          <button type="submit" class="btn btn-secondary btn-sm"><%= site.status === 'active' ? '⏸' : '▶' %></button>
+                        </form>
+                        <button class="btn btn-danger btn-sm" onclick="deleteResource('/admin/clients/<%= client.id %>/brands/<%= brand.id %>/sites/<%= site.id %>', '/admin/clients/<%= client.id %>')">🗑</button>
+                      </td>
+                    </tr>
+                    <% }) %>
+                  </tbody>
+                </table>
+                <% } else { %>
+                  <p style="color:var(--text-secondary);font-size:13px;margin-bottom:12px">No sites yet</p>
+                <% } %>
+                <details style="margin-top:8px">
+                  <summary style="cursor:pointer;color:var(--cyan);font-size:14px">+ Add Site</summary>
+                  <form method="POST" action="/admin/clients/<%= client.id %>/brands/<%= brand.id %>/sites" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+                    <input type="text" name="site_name" placeholder="Site name" required class="form-control" style="flex:1;min-width:140px">
+                    <input type="text" name="address" placeholder="Address" class="form-control" style="flex:1;min-width:140px">
+                    <input type="text" name="city" placeholder="City" class="form-control" style="width:120px">
+                    <input type="text" name="state" placeholder="State" class="form-control" style="width:60px">
+                    <button type="submit" class="btn btn-primary btn-sm">Add</button>
+                  </form>
+                </details>
+              </div>
+            <% }) %>
+          <% } %>
+          <details style="margin-top:8px">
+            <summary style="cursor:pointer;color:var(--cyan);font-weight:600">+ Add Brand</summary>
+            <form method="POST" action="/admin/clients/<%= client.id %>/brands" class="inline-form" style="margin-top:8px">
+              <input type="text" name="brand_name" placeholder="Brand name..." required>
+              <button type="submit" class="btn btn-primary btn-sm">Add</button>
+            </form>
+          </details>
+        </div>
+      </div>
+
+      <!-- Tab: Notes -->
+      <div class="tab-content" id="tab-notes">
+        <div class="detail-section" style="border-color:rgba(245,158,11,0.2);max-width:700px">
+          <h3>🔒 Private Notes</h3>
+          <% if (notes && notes.length > 0) { %>
+            <div style="margin-bottom:16px;display:flex;flex-direction:column;gap:8px">
+              <% notes.forEach(n => { %>
+              <div style="background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.15);border-radius:8px;padding:12px;position:relative">
+                <div style="font-size:14px;color:var(--text);white-space:pre-wrap"><%= n.note %></div>
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">
+                  <span style="font-size:11px;color:var(--text-secondary)"><%= new Date(n.created_at).toLocaleString() %></span>
+                  <button onclick="deleteResource('/admin/clients/<%= client.id %>/notes/<%= n.id %>', '/admin/clients/<%= client.id %>')" style="background:none;border:none;color:#ef4444;cursor:pointer;font-size:12px;opacity:0.6" title="Delete note">🗑</button>
+                </div>
+              </div>
+              <% }) %>
+            </div>
+          <% } else { %>
+            <p style="color:var(--text-secondary);font-size:14px;margin-bottom:16px">No notes yet</p>
+          <% } %>
+          <form method="POST" action="/admin/clients/<%= client.id %>/notes">
+            <div class="form-group" style="margin-bottom:8px">
+              <textarea name="note" class="form-control" rows="3" placeholder="Add a private note..." required style="background:rgba(245,158,11,0.04);border-color:rgba(245,158,11,0.15)"></textarea>
+            </div>
+            <button type="submit" class="btn btn-sm" style="background:rgba(245,158,11,0.15);color:#fbbf24;border:1px solid rgba(245,158,11,0.3);width:100%">Add Note</button>
+          </form>
+        </div>
+      </div>
+
+      <!-- Tab: Revenue -->
+      <div class="tab-content" id="tab-revenue">
+        <div class="detail-section">
+          <h3>Revenue / Projects</h3>
+          <% if (projects && projects.length > 0) { %>
+          <table>
+            <thead><tr><th>Project</th><th>Value</th><th>Status</th><th>Invoiced</th><th>Paid</th></tr></thead>
+            <tbody>
+              <% projects.forEach(p => { %>
+              <tr>
+                <td><%= p.name %></td>
+                <td style="font-weight:600;color:var(--cyan)">$<%= parseFloat(p.value).toLocaleString('en-US', {minimumFractionDigits:2}) %></td>
+                <td><span class="badge badge-<%= p.status %>"><%= p.status %></span></td>
+                <td><%= (p.invoiced === true || p.invoiced === 1) ? '✓' : '—' %></td>
+                <td><%= (p.paid === true || p.paid === 1) ? '✓' : '—' %></td>
+              </tr>
+              <% }) %>
+            </tbody>
+          </table>
+          <% } else { %>
+            <p style="color:var(--text-secondary);font-size:14px">No projects yet. <a href="/admin/revenue" style="color:var(--cyan)">Go to Revenue</a> to add one.</p>
+          <% } %>
+        </div>
+      </div>
+
+      <!-- Tab: Requests -->
+      <div class="tab-content" id="tab-requests">
+        <div class="card">
+          <div class="card-header">
+            <h3>Service Requests (<%= requests.length %>)</h3>
+          </div>
+          <table>
+            <thead>
+              <tr><th>ID</th><th>Service</th><th>Urgency</th><th>Status</th><th>Days Open</th><th>Date</th></tr>
+            </thead>
+            <tbody>
+              <% requests.forEach(r => {
+                const daysOpen = Math.floor((Date.now() - new Date(r.created_at).getTime()) / 86400000);
+              %>
+              <tr style="cursor:pointer" onclick="window.location='/admin/requests/<%= r.id %>'">
+                <td><a href="/admin/requests/<%= r.id %>">#<%= r.id %></a></td>
+                <td><%= r.service_type_name %></td>
+                <td><span class="badge badge-<%= r.urgency %>"><%= r.urgency %></span></td>
+                <td><span class="badge badge-<%= r.status %>"><%= r.status.replace('_', ' ') %></span></td>
+                <td><%= r.status === 'complete' ? '—' : daysOpen + 'd' %></td>
+                <td style="color:var(--text-secondary)"><%= new Date(r.created_at).toLocaleDateString() %></td>
+              </tr>
+              <% }) %>
+              <% if (requests.length === 0) { %>
+              <tr><td colspan="6" style="text-align:center;padding:24px;color:var(--text-secondary)">No requests yet</td></tr>
+              <% } %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
     <% } %>
   </div>
 </div>
+
+<script>
+function showTab(name) {
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
 
 <%- include('../partials/foot') %>

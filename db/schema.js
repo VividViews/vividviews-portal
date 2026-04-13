@@ -9,6 +9,14 @@ async function migrate() {
         email TEXT UNIQUE NOT NULL,
         password_hash TEXT NOT NULL,
         role TEXT NOT NULL DEFAULT 'client' CHECK(role IN ('admin','client')),
+        access_level TEXT NOT NULL DEFAULT 'client',
+        site_id INTEGER,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE TABLE IF NOT EXISTS client_types (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL UNIQUE,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       );
 
@@ -17,6 +25,22 @@ async function migrate() {
         user_id INTEGER NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
         company_name TEXT NOT NULL,
         client_type TEXT NOT NULL DEFAULT 'standard',
+        client_type_id INTEGER REFERENCES client_types(id) ON DELETE SET NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE TABLE IF NOT EXISTS client_sites (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        client_id INTEGER NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+        site_name TEXT NOT NULL,
+        address TEXT,
+        city TEXT,
+        state TEXT,
+        zip TEXT,
+        site_manager_name TEXT,
+        site_manager_phone TEXT,
+        site_manager_email TEXT,
+        status TEXT NOT NULL DEFAULT 'active',
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       );
 
@@ -43,6 +67,7 @@ async function migrate() {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         client_id INTEGER NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
         name TEXT NOT NULL,
+        default_urgency TEXT NOT NULL DEFAULT 'medium',
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       );
 
@@ -50,9 +75,11 @@ async function migrate() {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         client_id INTEGER NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
         service_type_id INTEGER NOT NULL REFERENCES service_types(id),
+        site_id INTEGER REFERENCES client_sites(id) ON DELETE SET NULL,
         description TEXT NOT NULL,
         urgency TEXT NOT NULL DEFAULT 'low' CHECK(urgency IN ('low','medium','high','urgent')),
         status TEXT NOT NULL DEFAULT 'submitted' CHECK(status IN ('submitted','in_review','in_progress','complete')),
+        is_emergency INTEGER NOT NULL DEFAULT 0,
         admin_notes TEXT DEFAULT '',
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
@@ -104,6 +131,60 @@ async function migrate() {
         feedback TEXT DEFAULT '',
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       );
+
+      CREATE TABLE IF NOT EXISTS employees (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        email TEXT UNIQUE NOT NULL,
+        password_hash TEXT NOT NULL,
+        role_name TEXT NOT NULL DEFAULT 'Technician',
+        hourly_rate REAL NOT NULL DEFAULT 0,
+        status TEXT NOT NULL DEFAULT 'pending',
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE TABLE IF NOT EXISTS employee_assignments (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        employee_id INTEGER NOT NULL REFERENCES employees(id) ON DELETE CASCADE,
+        client_id INTEGER NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+        site_id INTEGER REFERENCES client_sites(id) ON DELETE SET NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(employee_id, client_id, site_id)
+      );
+
+      CREATE TABLE IF NOT EXISTS emergency_requests (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        service_request_id INTEGER NOT NULL REFERENCES service_requests(id) ON DELETE CASCADE,
+        status TEXT NOT NULL DEFAULT 'pending',
+        base_fee REAL NOT NULL DEFAULT 0,
+        approved_by INTEGER REFERENCES users(id),
+        approved_at DATETIME,
+        dispatched_employee_id INTEGER REFERENCES employees(id),
+        notes TEXT DEFAULT '',
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE TABLE IF NOT EXISTS emergency_time_logs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        emergency_request_id INTEGER NOT NULL REFERENCES emergency_requests(id) ON DELETE CASCADE,
+        employee_id INTEGER NOT NULL REFERENCES employees(id),
+        clocked_in_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        clocked_out_at DATETIME,
+        total_minutes INTEGER,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE TABLE IF NOT EXISTS emergency_invoices (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        emergency_request_id INTEGER NOT NULL REFERENCES emergency_requests(id) ON DELETE CASCADE,
+        base_fee REAL NOT NULL DEFAULT 0,
+        hourly_rate REAL NOT NULL DEFAULT 0,
+        total_hours REAL NOT NULL DEFAULT 0,
+        labor_cost REAL NOT NULL DEFAULT 0,
+        total_amount REAL NOT NULL DEFAULT 0,
+        sent_at DATETIME,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      );
     `);
   } else {
     await db.exec(`
@@ -116,11 +197,32 @@ async function migrate() {
         created_at TIMESTAMPTZ DEFAULT NOW()
       );
 
+      CREATE TABLE IF NOT EXISTS client_types (
+        id SERIAL PRIMARY KEY,
+        name TEXT NOT NULL UNIQUE,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      );
+
       CREATE TABLE IF NOT EXISTS clients (
         id SERIAL PRIMARY KEY,
         user_id INTEGER NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
         company_name TEXT NOT NULL,
         client_type TEXT NOT NULL DEFAULT 'standard',
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      );
+
+      CREATE TABLE IF NOT EXISTS client_sites (
+        id SERIAL PRIMARY KEY,
+        client_id INTEGER NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+        site_name TEXT NOT NULL,
+        address TEXT,
+        city TEXT,
+        state TEXT,
+        zip TEXT,
+        site_manager_name TEXT,
+        site_manager_phone TEXT,
+        site_manager_email TEXT,
+        status TEXT NOT NULL DEFAULT 'active',
         created_at TIMESTAMPTZ DEFAULT NOW()
       );
 
@@ -209,6 +311,60 @@ async function migrate() {
         created_at TIMESTAMPTZ DEFAULT NOW()
       );
 
+      CREATE TABLE IF NOT EXISTS employees (
+        id SERIAL PRIMARY KEY,
+        name TEXT NOT NULL,
+        email TEXT UNIQUE NOT NULL,
+        password_hash TEXT NOT NULL,
+        role_name TEXT NOT NULL DEFAULT 'Technician',
+        hourly_rate DECIMAL(8,2) NOT NULL DEFAULT 0,
+        status TEXT NOT NULL DEFAULT 'pending',
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      );
+
+      CREATE TABLE IF NOT EXISTS employee_assignments (
+        id SERIAL PRIMARY KEY,
+        employee_id INTEGER NOT NULL REFERENCES employees(id) ON DELETE CASCADE,
+        client_id INTEGER NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+        site_id INTEGER REFERENCES client_sites(id) ON DELETE SET NULL,
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        UNIQUE(employee_id, client_id, site_id)
+      );
+
+      CREATE TABLE IF NOT EXISTS emergency_requests (
+        id SERIAL PRIMARY KEY,
+        service_request_id INTEGER NOT NULL REFERENCES service_requests(id) ON DELETE CASCADE,
+        status TEXT NOT NULL DEFAULT 'pending',
+        base_fee DECIMAL(8,2) NOT NULL DEFAULT 0,
+        approved_by INTEGER REFERENCES users(id),
+        approved_at TIMESTAMPTZ,
+        dispatched_employee_id INTEGER REFERENCES employees(id),
+        notes TEXT DEFAULT '',
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      );
+
+      CREATE TABLE IF NOT EXISTS emergency_time_logs (
+        id SERIAL PRIMARY KEY,
+        emergency_request_id INTEGER NOT NULL REFERENCES emergency_requests(id) ON DELETE CASCADE,
+        employee_id INTEGER NOT NULL REFERENCES employees(id),
+        clocked_in_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        clocked_out_at TIMESTAMPTZ,
+        total_minutes INTEGER,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      );
+
+      CREATE TABLE IF NOT EXISTS emergency_invoices (
+        id SERIAL PRIMARY KEY,
+        emergency_request_id INTEGER NOT NULL REFERENCES emergency_requests(id) ON DELETE CASCADE,
+        base_fee DECIMAL(8,2) NOT NULL DEFAULT 0,
+        hourly_rate DECIMAL(8,2) NOT NULL DEFAULT 0,
+        total_hours DECIMAL(6,2) NOT NULL DEFAULT 0,
+        labor_cost DECIMAL(10,2) NOT NULL DEFAULT 0,
+        total_amount DECIMAL(10,2) NOT NULL DEFAULT 0,
+        sent_at TIMESTAMPTZ,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      );
+
       CREATE TABLE IF NOT EXISTS session (
         sid VARCHAR NOT NULL COLLATE "default",
         sess JSON NOT NULL,
@@ -218,12 +374,29 @@ async function migrate() {
 
       CREATE INDEX IF NOT EXISTS IDX_session_expire ON session (expire);
     `);
+
+    // ALTER TABLE additions for PostgreSQL
+    try { await db.exec("ALTER TABLE users ADD COLUMN IF NOT EXISTS access_level TEXT NOT NULL DEFAULT 'client'"); } catch (e) { /* exists */ }
+    try { await db.exec("ALTER TABLE users ADD COLUMN IF NOT EXISTS site_id INTEGER REFERENCES client_sites(id) ON DELETE SET NULL"); } catch (e) { /* exists */ }
+    try { await db.exec("ALTER TABLE service_requests ADD COLUMN IF NOT EXISTS site_id INTEGER REFERENCES client_sites(id) ON DELETE SET NULL"); } catch (e) { /* exists */ }
+    try { await db.exec("ALTER TABLE service_requests ADD COLUMN IF NOT EXISTS is_emergency BOOLEAN NOT NULL DEFAULT FALSE"); } catch (e) { /* exists */ }
+    try { await db.exec("ALTER TABLE service_types ADD COLUMN IF NOT EXISTS default_urgency TEXT NOT NULL DEFAULT 'medium'"); } catch (e) { /* exists */ }
+    try { await db.exec("ALTER TABLE clients ADD COLUMN IF NOT EXISTS client_type_id INTEGER REFERENCES client_types(id) ON DELETE SET NULL"); } catch (e) { /* exists */ }
+    try { await db.exec("ALTER TABLE clients ADD COLUMN IF NOT EXISTS client_type TEXT NOT NULL DEFAULT 'standard'"); } catch (e) { /* exists */ }
   }
-  // Add client_type column to existing databases
-  if (db.type === 'pg') {
-    try {
-      await db.exec("ALTER TABLE clients ADD COLUMN IF NOT EXISTS client_type TEXT NOT NULL DEFAULT 'standard'");
-    } catch (e) { /* column may already exist */ }
+
+  // Seed default client types if empty
+  try {
+    const existing = await db.query('SELECT COUNT(*) as count FROM client_types');
+    if (parseInt(existing[0].count) === 0) {
+      const types = ['Standard', 'Car Wash', 'Healthcare', 'Real Estate'];
+      for (const t of types) {
+        await db.run('INSERT INTO client_types (name) VALUES ($1)', [t]);
+      }
+      console.log('✅ Seeded default client types');
+    }
+  } catch (e) {
+    console.error('Client type seed error:', e.message);
   }
 
   console.log('✅ Database migrations complete');

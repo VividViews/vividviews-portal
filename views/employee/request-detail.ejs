@@ -1,0 +1,132 @@
+<%- include('../partials/head', { title }) %>
+
+<style>
+  .sidebar-nav a.active { background: rgba(124,58,237,0.08) !important; color: #a78bfa !important; border-left-color: #a78bfa !important; }
+  .sidebar-nav a:hover { background: rgba(124,58,237,0.05) !important; }
+  .sidebar-monogram { background: linear-gradient(135deg, #7c3aed, #a78bfa) !important; box-shadow: 0 0 20px rgba(124,58,237,0.3) !important; }
+  .sidebar-brand-text small { color: #a78bfa !important; }
+</style>
+
+<nav class="sidebar">
+  <div class="sidebar-brand">
+    <div class="sidebar-monogram">VV</div>
+    <div class="sidebar-brand-text"><h1>Vivid Views</h1><small>Employee Portal</small></div>
+  </div>
+  <div class="sidebar-nav">
+    <a href="/employee"><span class="nav-icon">📊</span> Dashboard</a>
+    <a href="/employee/requests" class="active"><span class="nav-icon">📋</span> Requests</a>
+    <a href="/employee/emergency"><span class="nav-icon">⚠️</span> Emergency</a>
+  </div>
+  <div class="sidebar-footer">
+    <div class="user-avatar" style="background:linear-gradient(135deg,#7c3aed,#a78bfa)"><%= employee.name.charAt(0).toUpperCase() %></div>
+    <div class="user-info"><strong><%= employee.name %></strong><span><%= employee.role_name %></span></div>
+    <form method="POST" action="/employee/logout" style="margin:0"><button type="submit" class="btn-logout">↗</button></form>
+  </div>
+</nav>
+
+<div class="main">
+  <div class="topbar">
+    <button class="hamburger" onclick="toggleSidebar()">☰</button>
+    <h2>Request #<%= String(request.id).padStart(6, '0') %></h2>
+    <a href="/employee/requests" class="btn btn-secondary btn-sm">← Back</a>
+  </div>
+  <div class="content">
+    <%
+      const daysOpen = Math.floor((Date.now() - new Date(request.created_at).getTime()) / 86400000);
+    %>
+
+    <!-- Info Grid -->
+    <div class="detail-grid" style="grid-template-columns:1fr 1fr;margin-bottom:24px">
+      <div class="detail-section" style="margin-bottom:0">
+        <h3>Ticket Information</h3>
+        <div class="detail-row">
+          <div class="detail-label">Ticket #</div>
+          <div class="detail-value" style="font-weight:600;font-family:monospace;color:#a78bfa"><%= String(request.id).padStart(6, '0') %></div>
+        </div>
+        <div class="detail-row">
+          <div class="detail-label">Client</div>
+          <div class="detail-value"><%= request.company_name %></div>
+        </div>
+        <% if (request.site_name) { %>
+        <div class="detail-row">
+          <div class="detail-label">Site</div>
+          <div class="detail-value"><strong><%= request.site_name %></strong><% if (request.site_address) { %><br><span style="color:var(--text-secondary);font-size:13px"><%= request.site_address %></span><% } %></div>
+        </div>
+        <% } %>
+        <div class="detail-row">
+          <div class="detail-label">Service Type</div>
+          <div class="detail-value"><%= request.service_type_name %></div>
+        </div>
+        <div class="detail-row">
+          <div class="detail-label">Urgency</div>
+          <div class="detail-value"><span class="badge badge-<%= request.urgency %>"><%= request.urgency %></span></div>
+        </div>
+        <div class="detail-row">
+          <div class="detail-label">Status</div>
+          <div class="detail-value"><span class="badge badge-<%= request.status %>"><%= request.status.replace('_',' ') %></span></div>
+        </div>
+        <div class="detail-row">
+          <div class="detail-label">Days Open</div>
+          <div class="detail-value"><%= request.status === 'complete' ? '—' : daysOpen + ' days' %></div>
+        </div>
+        <div class="detail-row">
+          <div class="detail-label">Created</div>
+          <div class="detail-value"><%= new Date(request.created_at).toLocaleString() %></div>
+        </div>
+      </div>
+
+      <div class="detail-section" style="margin-bottom:0">
+        <h3>Description</h3>
+        <div class="description-text"><%= request.description %></div>
+
+        <% if (attachments.length > 0) { %>
+        <h3 style="margin-top:20px">Attachments</h3>
+        <ul class="file-list">
+          <% attachments.forEach(a => { %>
+          <li><a href="/uploads/<%= a.filename %>" target="_blank">📎 <%= a.original_name %></a></li>
+          <% }) %>
+        </ul>
+        <% } %>
+      </div>
+    </div>
+
+    <!-- Activity Log -->
+    <div class="card" style="margin-bottom:24px">
+      <div class="card-header"><h3>Activity Log</h3></div>
+      <% if (comments.length === 0) { %>
+        <div class="empty-state" style="padding:24px"><p>No activity yet.</p></div>
+      <% } else { %>
+      <div style="padding:16px;display:flex;flex-direction:column;gap:12px">
+        <% comments.forEach(c => {
+          const isAdmin = c.author_role === 'admin';
+          const isEmp = c.author_role === 'employee';
+          const borderColor = isAdmin ? '#00d4ff' : isEmp ? '#a78bfa' : '#7c3aed';
+          const labelColor = isAdmin ? '#00d4ff' : isEmp ? '#a78bfa' : '#7c3aed';
+          const label = isAdmin ? 'Vivid Views' : isEmp ? c.author_name : c.author_name + ' (Client)';
+        %>
+        <div style="border-left:3px solid <%= borderColor %>;padding:12px 16px;background:rgba(255,255,255,0.02);border-radius:0 8px 8px 0">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+            <strong style="color:<%= labelColor %>;font-size:13px"><%= label %></strong>
+            <span style="font-size:12px;color:var(--text-secondary)"><%= new Date(c.created_at).toLocaleString() %></span>
+          </div>
+          <div style="color:var(--text)"><%= c.comment %></div>
+        </div>
+        <% }) %>
+      </div>
+      <% } %>
+    </div>
+
+    <!-- Add Comment -->
+    <div class="detail-section" style="max-width:600px">
+      <h3>💬 Add Comment</h3>
+      <form method="POST" action="/employee/requests/<%= request.id %>/comment">
+        <div class="form-group">
+          <textarea name="comment" class="form-control" rows="4" placeholder="Write a comment..." required></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary" style="width:100%;background:linear-gradient(135deg,#7c3aed,#a78bfa)">Post Comment</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<%- include('../partials/foot') %>

@@ -44,6 +44,7 @@ async function start() {
   // Make user available to all views
   app.use((req, res, next) => {
     res.locals.currentUser = req.session.user || null;
+    res.locals.currentEmployee = req.session.employee || null;
     next();
   });
 
@@ -60,9 +61,13 @@ async function start() {
   app.use('/auth', require('./routes/auth'));
   app.use('/admin', require('./routes/admin'));
   app.use('/portal', require('./routes/portal'));
+  app.use('/employee', require('./routes/employees'));
 
   // Root redirect
   app.get('/', (req, res) => {
+    if (req.session.employee) {
+      return res.redirect('/employee');
+    }
     if (req.session.user) {
       return res.redirect(req.session.user.role === 'admin' ? '/admin' : '/portal');
     }

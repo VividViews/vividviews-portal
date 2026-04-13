@@ -17,6 +17,32 @@
       <div style="position:absolute;right:32px;top:50%;transform:translateY(-50%);font-size:64px;opacity:0.15">🚀</div>
     </div>
 
+    <!-- Emergency Alerts -->
+    <% if (pendingEmergencies && pendingEmergencies.length > 0) { %>
+    <div style="background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2);border-radius:12px;padding:16px 20px;margin-bottom:24px;display:flex;align-items:center;gap:12px">
+      <span style="font-size:24px">🚨</span>
+      <div>
+        <strong style="color:#ef4444"><%= pendingEmergencies.length %> Emergency Request<%= pendingEmergencies.length > 1 ? 's' : '' %> Pending</strong>
+        <p style="color:var(--text-secondary);font-size:13px;margin-top:2px">Awaiting admin approval and dispatch</p>
+      </div>
+    </div>
+    <% } %>
+
+    <% if (accessLevel !== 'site' && sites && sites.length > 0) { %>
+    <!-- Sites Overview (for owner/regional) -->
+    <h3 style="color:var(--text);margin-bottom:16px;font-size:16px">📍 Your Sites</h3>
+    <div class="stats-grid" style="grid-template-columns:repeat(auto-fill, minmax(220px, 1fr));margin-bottom:32px">
+      <% sites.forEach(s => { %>
+      <div class="stat-card" style="cursor:pointer;transition:all 0.2s" onclick="filterBySite(<%= s.id %>)" onmouseover="this.style.borderColor='rgba(0,212,255,0.3)'" onmouseout="this.style.borderColor=''">
+        <span class="stat-icon">📍</span>
+        <div class="stat-label"><%= s.site_name %></div>
+        <div class="stat-value"><%= s.open_count %></div>
+        <div style="font-size:12px;color:var(--text-secondary);margin-top:2px">open requests</div>
+      </div>
+      <% }) %>
+    </div>
+    <% } %>
+
     <!-- Kanban Status Overview -->
     <style>
       .kanban { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 32px; }
@@ -31,6 +57,7 @@
       .kanban-card:hover { background: var(--hover-row); border-color: rgba(0,212,255,0.2); transform: translateY(-1px); }
       .kanban-card .kc-type { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
       .kanban-card .kc-meta { display: flex; justify-content: space-between; align-items: center; }
+      .kanban-card .kc-site { font-size: 11px; color: var(--text-secondary); margin-bottom: 4px; }
       @media (max-width: 768px) { .kanban { grid-template-columns: repeat(2, 1fr); } }
     </style>
 
@@ -40,7 +67,7 @@
       const statusColors = { submitted: '#94a3b8', in_review: '#fbbf24', in_progress: '#00d4ff', complete: '#10b981' };
     %>
 
-    <div class="kanban">
+    <div class="kanban" id="kanbanBoard">
       <% statuses.forEach(s => {
         const items = requests.filter(r => r.status === s);
       %>
@@ -49,9 +76,17 @@
           <%= statusLabels[s] %>
           <span class="count"><%= items.length %></span>
         </h4>
-        <% items.forEach(r => { %>
-        <div class="kanban-card" onclick="window.location='/portal/requests/<%= r.id %>'">
-          <div class="kc-type"><%= r.service_type_name %></div>
+        <% items.forEach(r => {
+          const isEmergency = r.is_emergency === true || r.is_emergency === 1;
+        %>
+        <div class="kanban-card" onclick="window.location='/portal/requests/<%= r.id %>'" data-site="<%= r.site_id || '' %>" style="<%= isEmergency ? 'border-color:rgba(239,68,68,0.3);' : '' %>">
+          <% if (r.site_name) { %>
+            <div class="kc-site">📍 <%= r.site_name %></div>
+          <% } %>
+          <div class="kc-type">
+            <% if (isEmergency) { %><span style="color:#ef4444">🚨</span> <% } %>
+            <%= r.service_type_name %>
+          </div>
           <div class="kc-meta">
             <span class="badge badge-<%= r.urgency %>" style="font-size:10px;padding:2px 6px"><%= r.urgency %></span>
             <span style="font-size:11px;color:var(--text-secondary)"><%= new Date(r.created_at).toLocaleDateString() %></span>
@@ -80,5 +115,18 @@
     </div>
   </div>
 </div>
+
+<script>
+function filterBySite(siteId) {
+  const cards = document.querySelectorAll('.kanban-card');
+  cards.forEach(card => {
+    if (siteId && card.dataset.site && card.dataset.site != siteId) {
+      card.style.display = 'none';
+    } else {
+      card.style.display = '';
+    }
+  });
+}
+</script>
 
 <%- include('../partials/foot') %>

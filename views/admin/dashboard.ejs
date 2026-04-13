@@ -1,5 +1,5 @@
 <%- include('../partials/head', { title }) %>
-<%- include('../partials/sidebar-admin', { user, active: 'dashboard' }) %>
+<%- include('../partials/sidebar-admin', { user, active: 'dashboard', stats }) %>
 
 <div class="main">
   <div class="topbar">
@@ -12,7 +12,11 @@
     <div class="quick-actions">
       <a href="/admin/clients/new" class="btn btn-primary btn-sm">➕ New Client</a>
       <a href="/admin/requests" class="btn btn-secondary btn-sm">📋 All Requests</a>
+      <a href="/admin/employees" class="btn btn-secondary btn-sm">👥 Employees</a>
       <a href="/admin/revenue" class="btn btn-secondary btn-sm">💰 View Revenue</a>
+      <% if (stats.pendingEmergencies > 0) { %>
+        <a href="/admin/emergency" class="btn btn-sm" style="background:rgba(239,68,68,0.15);color:#ef4444;border:1px solid rgba(239,68,68,0.3);animation:pulse-red 2s infinite">🚨 <%= stats.pendingEmergencies %> Emergency</a>
+      <% } %>
     </div>
 
     <div class="stats-grid">

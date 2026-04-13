@@ -1,0 +1,118 @@
+<%- include('../partials/head', { title }) %>
+<%- include('../partials/sidebar-admin', { user, active: 'emergency', stats: { pendingEmergencies: pending.length } }) %>
+
+<div class="main">
+  <div class="topbar">
+    <button class="hamburger" onclick="toggleSidebar()">☰</button>
+    <h2 style="display:flex;align-items:center;gap:12px">
+      ⚠️ Emergency Queue
+      <% if (pending.length > 0) { %>
+        <span class="badge badge-urgent"><%= pending.length %> pending</span>
+      <% } %>
+    </h2>
+    <div></div>
+  </div>
+  <div class="content">
+    <style>
+      .emergency-card { border: 1px solid rgba(239,68,68,0.3); box-shadow: 0 0 20px rgba(239,68,68,0.08); }
+      .emergency-card::before { background: linear-gradient(135deg, #ef4444, #f97316) !important; }
+    </style>
+
+    <!-- Pending Emergencies -->
+    <% if (pending.length > 0) { %>
+    <div class="card emergency-card" style="margin-bottom:24px">
+      <div class="card-header" style="background:rgba(239,68,68,0.06)">
+        <h3 style="color:#ef4444">🚨 Pending Approval</h3>
+      </div>
+      <table>
+        <thead>
+          <tr><th>Client</th><th>Site</th><th>Request</th><th>Submitted</th><th>Actions</th></tr>
+        </thead>
+        <tbody>
+          <% pending.forEach(e => { %>
+          <tr>
+            <td><a href="/admin/clients/<%= e.client_id %>"><%= e.company_name %></a></td>
+            <td><%= e.site_name || '—' %></td>
+            <td><a href="/admin/requests/<%= e.request_id %>">#<%= e.request_id %></a> — <%= e.service_type_name %></td>
+            <td style="color:var(--text-secondary)"><%= new Date(e.created_at).toLocaleString() %></td>
+            <td>
+              <form method="POST" action="/admin/emergency/<%= e.id %>/approve" style="display:flex;gap:8px;align-items:center">
+                <select name="dispatched_employee_id" class="form-control" style="width:160px;padding:6px 10px;font-size:13px">
+                  <option value="">— Employee —</option>
+                  <% employees.forEach(emp => { %>
+                    <option value="<%= emp.id %>"><%= emp.name %> (<%= emp.role_name %>)</option>
+                  <% }) %>
+                </select>
+                <input type="number" name="base_fee" class="form-control" style="width:100px;padding:6px 10px;font-size:13px" placeholder="Base fee $" step="0.01" min="0" value="150">
+                <button type="submit" class="btn btn-sm" style="background:rgba(16,185,129,0.15);color:#10b981;border:1px solid rgba(16,185,129,0.3);white-space:nowrap">✅ Approve</button>
+              </form>
+            </td>
+          </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+    <% } %>
+
+    <!-- Active Emergencies -->
+    <div class="card" style="margin-bottom:24px">
+      <div class="card-header">
+        <h3>🔥 Active / In Progress</h3>
+      </div>
+      <% if (active.length > 0) { %>
+      <table>
+        <thead>
+          <tr><th>Client</th><th>Site</th><th>Request</th><th>Employee</th><th>Status</th><th>Actions</th></tr>
+        </thead>
+        <tbody>
+          <% active.forEach(e => { %>
+          <tr>
+            <td><%= e.company_name %></td>
+            <td><%= e.site_name || '—' %></td>
+            <td><a href="/admin/requests/<%= e.request_id %>">#<%= e.request_id %></a></td>
+            <td><%= e.employee_name || '—' %></td>
+            <td><span class="badge badge-<%= e.status === 'dispatched' ? 'in_progress' : 'in_review' %>"><%= e.status %></span></td>
+            <td>
+              <form method="POST" action="/admin/emergency/<%= e.id %>/complete" style="display:inline">
+                <button type="submit" class="btn btn-sm" style="background:rgba(16,185,129,0.15);color:#10b981;border:1px solid rgba(16,185,129,0.3)">🏁 Complete</button>
+              </form>
+            </td>
+          </tr>
+          <% }) %>
+        </tbody>
+      </table>
+      <% } else { %>
+        <div class="empty-state" style="padding:32px"><p>No active emergencies</p></div>
+      <% } %>
+    </div>
+
+    <!-- Completed -->
+    <div class="card">
+      <div class="card-header">
+        <h3>✅ Completed</h3>
+      </div>
+      <% if (completed.length > 0) { %>
+      <table>
+        <thead>
+          <tr><th>Client</th><th>Site</th><th>Request</th><th>Employee</th><th>Completed</th></tr>
+        </thead>
+        <tbody>
+          <% completed.forEach(e => { %>
+          <tr>
+            <td><%= e.company_name %></td>
+            <td><%= e.site_name || '—' %></td>
+            <td><a href="/admin/requests/<%= e.request_id %>">#<%= e.request_id %></a></td>
+            <td><%= e.employee_name || '—' %></td>
+            <td style="color:var(--text-secondary)"><%= new Date(e.created_at).toLocaleString() %></td>
+          </tr>
+          <% }) %>
+        </tbody>
+      </table>
+      <% } else { %>
+        <div class="empty-state" style="padding:32px"><p>No completed emergencies</p></div>
+      <% } %>
+    </div>
+  </div>
+</div>
+
+<%- include('../partials/foot') %>

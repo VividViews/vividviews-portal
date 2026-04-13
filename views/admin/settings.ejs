@@ -1,0 +1,50 @@
+<%- include('../partials/head', { title }) %>
+<%- include('../partials/sidebar-admin', { user, active: 'settings', stats: { pendingEmergencies: 0 } }) %>
+
+<div class="main">
+  <div class="topbar">
+    <button class="hamburger" onclick="toggleSidebar()">☰</button>
+    <h2>⚙️ Settings</h2>
+    <div></div>
+  </div>
+  <div class="content">
+    <div class="detail-grid">
+      <div>
+        <!-- Client Types -->
+        <div class="detail-section">
+          <h3>Client Types</h3>
+          <p style="color:var(--text-secondary);font-size:13px;margin-bottom:16px">Manage the types of clients your business serves. These are used when creating or editing clients.</p>
+          <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px">
+            <% clientTypes.forEach(ct => { %>
+              <span class="tag">
+                <%= ct.name %>
+                <button onclick="deleteResource('/admin/settings/client-types/<%= ct.id %>', '/admin/settings')" title="Remove">&times;</button>
+              </span>
+            <% }) %>
+            <% if (clientTypes.length === 0) { %>
+              <p style="color:var(--text-secondary);font-size:14px">No client types defined</p>
+            <% } %>
+          </div>
+          <form method="POST" action="/admin/settings/client-types" class="inline-form">
+            <input type="text" name="name" placeholder="New client type..." required>
+            <button type="submit" class="btn btn-primary btn-sm">Add</button>
+          </form>
+        </div>
+      </div>
+
+      <div>
+        <!-- Info -->
+        <div class="detail-section">
+          <h3>ℹ️ About Settings</h3>
+          <div style="color:var(--text-secondary);font-size:14px;line-height:1.8">
+            <p><strong style="color:var(--text)">Client Types</strong> — Categorize your clients (e.g., Car Wash, Healthcare, Real Estate). This helps organize clients and can show/hide relevant features like Car Wash Brands.</p>
+            <p style="margin-top:12px"><strong style="color:var(--text)">Service Types</strong> — Managed per-client from each client's detail page. Each service type has a preset urgency level.</p>
+            <p style="margin-top:12px"><strong style="color:var(--text)">Employees</strong> — Managed from the <a href="/admin/employees" style="color:var(--cyan)">Employees</a> page. Assign employees to clients/sites for dispatching.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<%- include('../partials/foot') %>

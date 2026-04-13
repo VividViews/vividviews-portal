@@ -1,0 +1,107 @@
+<%- include('../partials/head', { title }) %>
+
+<!-- Employee Sidebar (purple accent) -->
+<style>
+  .sidebar-nav a.active { background: rgba(124,58,237,0.08) !important; color: #a78bfa !important; border-left-color: #a78bfa !important; box-shadow: inset 0 0 20px rgba(124,58,237,0.05) !important; }
+  .sidebar-nav a:hover { background: rgba(124,58,237,0.05) !important; }
+  .sidebar-monogram { background: linear-gradient(135deg, #7c3aed, #a78bfa) !important; box-shadow: 0 0 20px rgba(124,58,237,0.3) !important; }
+  .sidebar-brand-text small { color: #a78bfa !important; }
+  .stat-card::before { background: linear-gradient(135deg, #7c3aed, #a78bfa) !important; }
+</style>
+
+<nav class="sidebar">
+  <div class="sidebar-brand">
+    <div class="sidebar-monogram">VV</div>
+    <div class="sidebar-brand-text">
+      <h1>Vivid Views</h1>
+      <small>Employee Portal</small>
+    </div>
+  </div>
+  <div class="sidebar-nav">
+    <a href="/employee" class="active"><span class="nav-icon">📊</span> Dashboard</a>
+    <a href="/employee/requests"><span class="nav-icon">📋</span> Requests</a>
+    <a href="/employee/emergency"><span class="nav-icon">⚠️</span> Emergency</a>
+  </div>
+  <div class="sidebar-footer">
+    <div class="user-avatar" style="background:linear-gradient(135deg,#7c3aed,#a78bfa)"><%= employee.name ? employee.name.charAt(0).toUpperCase() : 'E' %></div>
+    <div class="user-info">
+      <strong><%= employee.name %></strong>
+      <span><%= employee.role_name %></span>
+    </div>
+    <form method="POST" action="/employee/logout" style="margin:0">
+      <button type="submit" class="btn-logout">↗</button>
+    </form>
+  </div>
+</nav>
+
+<div class="main">
+  <div class="topbar">
+    <button class="hamburger" onclick="toggleSidebar()">☰</button>
+    <h2>Welcome, <%= employee.name %> — <%= employee.role_name %></h2>
+    <div></div>
+  </div>
+  <div class="content">
+    <!-- Stats -->
+    <div class="stats-grid" style="grid-template-columns:repeat(3,1fr)">
+      <div class="stat-card">
+        <span class="stat-icon">🏢</span>
+        <div class="stat-label">Assigned Clients</div>
+        <div class="stat-value" data-countup="<%= stats.assignedClients %>">0</div>
+      </div>
+      <div class="stat-card">
+        <span class="stat-icon">📋</span>
+        <div class="stat-label">Open Requests</div>
+        <div class="stat-value" data-countup="<%= stats.openRequests %>">0</div>
+      </div>
+      <div class="stat-card">
+        <span class="stat-icon">🚨</span>
+        <div class="stat-label">Active Emergencies</div>
+        <div class="stat-value" data-countup="<%= stats.activeEmergencies %>">0</div>
+      </div>
+    </div>
+
+    <!-- Assigned Clients/Sites -->
+    <% if (assignments.length > 0) { %>
+    <h3 style="color:var(--text);margin-bottom:16px;font-size:16px">📍 Your Assignments</h3>
+    <div class="stats-grid" style="grid-template-columns:repeat(auto-fill, minmax(240px, 1fr));margin-bottom:32px">
+      <% assignments.forEach(a => { %>
+      <div class="stat-card">
+        <span class="stat-icon">🏢</span>
+        <div class="stat-label"><%= a.company_name %></div>
+        <div style="font-size:14px;color:var(--text);margin-top:4px"><%= a.site_name || 'All Sites' %></div>
+      </div>
+      <% }) %>
+    </div>
+    <% } %>
+
+    <!-- Open Requests Table -->
+    <div class="card">
+      <div class="card-header">
+        <h3>Open Requests</h3>
+        <a href="/employee/requests" class="btn btn-secondary btn-sm">View All</a>
+      </div>
+      <table>
+        <thead>
+          <tr><th>ID</th><th>Client</th><th>Site</th><th>Service</th><th>Status</th><th>Date</th></tr>
+        </thead>
+        <tbody>
+          <% openRequests.forEach(r => { %>
+          <tr style="cursor:pointer" onclick="window.location='/employee/requests/<%= r.id %>'">
+            <td><a href="/employee/requests/<%= r.id %>">#<%= r.id %></a></td>
+            <td><%= r.company_name %></td>
+            <td><%= r.site_name || '—' %></td>
+            <td><%= r.service_type_name %></td>
+            <td><span class="badge badge-<%= r.status %>"><%= r.status.replace('_',' ') %></span></td>
+            <td style="color:var(--text-secondary)"><%= new Date(r.created_at).toLocaleDateString() %></td>
+          </tr>
+          <% }) %>
+          <% if (openRequests.length === 0) { %>
+          <tr><td colspan="6" style="text-align:center;padding:32px;color:var(--text-secondary)">No open requests</td></tr>
+          <% } %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<%- include('../partials/foot') %>

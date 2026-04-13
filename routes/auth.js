@@ -21,12 +21,30 @@ router.post('/login', async (req, res) => {
     // If client, get client record
     let clientId = null;
     let companyName = null;
+    let accessLevel = user.access_level || 'client';
+    let siteId = user.site_id || null;
     if (user.role === 'client') {
       const client = await db.get('SELECT * FROM clients WHERE user_id = $1', [user.id]);
-      if (client) {
+      if (!client) {
+        // Check if this user is linked to a client via another mechanism (multi-user clients)
+        // For now, check if there's a client where user_id matches OR client_id is stored differently
+        // site-level users: find the client via site_id
+        if (siteId) {
+          const site = await db.get('SELECT * FROM client_sites WHERE id = $1', [siteId]);
+          if (site) {
+            clientId = site.client_id;
+            const clientRec = await db.get('SELECT * FROM clients WHERE id = $1', [site.client_id]);
+            if (clientRec) companyName = clientRec.company_name;
+          }
+        }
+      } else {
         clientId = client.id;
         companyName = client.company_name;
       }
+    }
+
+    if (user.role === 'admin') {
+      accessLevel = 'admin';
     }
 
     req.session.user = {
@@ -35,7 +53,9 @@ router.post('/login', async (req, res) => {
       email: user.email,
       role: user.role,
       clientId,
-      companyName
+      companyName,
+      accessLevel,
+      siteId
     };
 
     res.redirect(user.role === 'admin' ? '/admin' : '/portal');

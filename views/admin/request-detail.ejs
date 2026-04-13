@@ -1,10 +1,23 @@
 <%- include('../partials/head', { title }) %>
-<%- include('../partials/sidebar-admin', { user, active: 'requests' }) %>
+<%- include('../partials/sidebar-admin', { user, active: 'requests', stats: { pendingEmergencies: 0 } }) %>
+
+<%
+  const daysOpen = Math.floor((Date.now() - new Date(request.created_at).getTime()) / 86400000);
+  const isEmergency = request.is_emergency === true || request.is_emergency === 1;
+%>
 
 <div class="main">
   <div class="topbar">
     <button class="hamburger" onclick="toggleSidebar()">☰</button>
-    <h2>View Service Request</h2>
+    <h2 style="display:flex;align-items:center;gap:12px">
+      View Service Request
+      <% if (request.status !== 'complete') { %>
+        <span class="badge" style="background:rgba(0,212,255,0.15);color:#00d4ff;font-size:12px"><%= daysOpen %>d open</span>
+      <% } %>
+      <% if (isEmergency) { %>
+        <span class="badge badge-urgent">🚨 Emergency</span>
+      <% } %>
+    </h2>
     <div style="display:flex;align-items:center;gap:12px">
       <span style="font-size:13px;color:var(--text-secondary)">Admin &rsaquo; <a href="/admin/requests" style="color:var(--text-secondary);text-decoration:none">Requests</a> &rsaquo; #<%= String(request.id).padStart(6, '0') %></span>
       <a href="/admin/requests" class="btn btn-secondary btn-sm">← Back</a>
@@ -26,12 +39,23 @@
         </div>
         <div class="detail-row">
           <div class="detail-label">Client</div>
-          <div class="detail-value"><%= request.company_name %></div>
+          <div class="detail-value"><a href="/admin/clients/<%= request.client_id %>" style="color:var(--cyan);text-decoration:none"><%= request.company_name %></a></div>
         </div>
         <div class="detail-row">
           <div class="detail-label">Contact</div>
           <div class="detail-value"><%= request.contact_name %></div>
         </div>
+        <% if (request.site_name) { %>
+        <div class="detail-row">
+          <div class="detail-label">Site</div>
+          <div class="detail-value">
+            <strong><%= request.site_name %></strong>
+            <% if (request.site_address) { %>
+              <br><span style="color:var(--text-secondary);font-size:13px"><%= request.site_address %><%= request.site_city ? ', ' + request.site_city : '' %><%= request.site_state ? ' ' + request.site_state : '' %></span>
+            <% } %>
+          </div>
+        </div>
+        <% } %>
         <div class="detail-row">
           <div class="detail-label">Service Type</div>
           <div class="detail-value"><%= request.service_type_name %></div>
@@ -44,6 +68,17 @@
           <div class="detail-label">Status</div>
           <div class="detail-value"><span class="badge badge-<%= request.status %>"><%= request.status.replace('_', ' ') %></span></div>
         </div>
+        <% if (isEmergency && emergency) { %>
+        <div class="detail-row">
+          <div class="detail-label">Emergency</div>
+          <div class="detail-value">
+            <span class="badge badge-urgent"><%= emergency.status %></span>
+            <% if (emergency.base_fee) { %>
+              <span style="margin-left:8px;color:var(--text-secondary)">Base fee: $<%= parseFloat(emergency.base_fee).toFixed(2) %></span>
+            <% } %>
+          </div>
+        </div>
+        <% } %>
       </div>
 
       <div class="detail-section" style="margin-bottom:0">
@@ -74,6 +109,9 @@
       <a href="#section-comment" class="btn btn-primary btn-sm">💬 Add Comment</a>
       <a href="#section-upload" class="btn btn-secondary btn-sm">📎 Upload File</a>
       <a href="#section-status" class="btn btn-sm" style="background:rgba(16,185,129,0.15);color:#10b981;border:1px solid rgba(16,185,129,0.3)">🔄 Update Status</a>
+      <form method="POST" action="/admin/requests/<%= request.id %>/delete" onsubmit="return confirm('⚠️ Delete this request and all related data? This cannot be undone.')">
+        <button type="submit" class="btn btn-danger btn-sm">🗑 Delete Request</button>
+      </form>
     </div>
 
     <!-- Activity Log -->
@@ -85,9 +123,10 @@
       <div style="padding:16px;display:flex;flex-direction:column;gap:12px">
         <% comments.forEach(c => {
           const isAdmin = c.author_role === 'admin';
-          const borderColor = isAdmin ? '#00d4ff' : '#7c3aed';
-          const labelColor = isAdmin ? '#00d4ff' : '#a78bfa';
-          const label = isAdmin ? 'Admin (You)' : c.author_name;
+          const isEmp = c.author_role === 'employee';
+          const borderColor = isAdmin ? '#00d4ff' : isEmp ? '#a78bfa' : '#7c3aed';
+          const labelColor = isAdmin ? '#00d4ff' : isEmp ? '#a78bfa' : '#a78bfa';
+          const label = isAdmin ? 'Admin (You)' : isEmp ? c.author_name + ' (Employee)' : c.author_name;
           let bgColor = 'rgba(255,255,255,0.02)';
           if (c.comment_type === 'status_change') bgColor = 'rgba(0,212,255,0.04)';
           else if (c.comment_type === 'file_upload') bgColor = 'rgba(16,185,129,0.04)';
@@ -115,14 +154,7 @@
         <div class="empty-state" style="padding:24px"><p>No files attached.</p></div>
       <% } else { %>
       <table>
-        <thead>
-          <tr>
-            <th>File</th>
-            <th>Type</th>
-            <th>Uploaded</th>
-            <th>Action</th>
-          </tr>
-        </thead>
+        <thead><tr><th>File</th><th>Type</th><th>Uploaded</th><th>Action</th></tr></thead>
         <tbody>
           <% attachments.forEach(a => { %>
           <tr>
@@ -139,7 +171,6 @@
 
     <!-- Forms section -->
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:24px">
-      <!-- Add Comment -->
       <div class="detail-section" id="section-comment" style="margin-bottom:0">
         <h3>💬 Add Comment</h3>
         <form method="POST" action="/admin/requests/<%= request.id %>/comment">
@@ -149,8 +180,6 @@
           <button type="submit" class="btn btn-primary" style="width:100%">Post Comment</button>
         </form>
       </div>
-
-      <!-- Upload File -->
       <div class="detail-section" id="section-upload" style="margin-bottom:0">
         <h3>📎 Upload File</h3>
         <form method="POST" action="/admin/requests/<%= request.id %>/upload" enctype="multipart/form-data">
@@ -160,8 +189,6 @@
           <button type="submit" class="btn btn-secondary" style="width:100%">Upload</button>
         </form>
       </div>
-
-      <!-- Update Status -->
       <div class="detail-section" id="section-status" style="margin-bottom:0">
         <h3>🔄 Update Status</h3>
         <form method="POST" action="/admin/requests/<%= request.id %>/status">
@@ -182,7 +209,6 @@
         </form>
       </div>
     </div>
-
   </div>
 </div>
 

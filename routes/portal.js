@@ -16,22 +16,69 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage, limits: { fileSize: 10 * 1024 * 1024 } });
 
+// Helper: build WHERE clause based on access level
+function accessFilter(user) {
+  if (user.accessLevel === 'site' && user.siteId) {
+    return { clause: 'AND sr.site_id = $SITE', params: [user.siteId] };
+  }
+  return { clause: '', params: [] };
+}
+
 // Client dashboard
 router.get('/', async (req, res) => {
   const clientId = req.session.user.clientId;
+  const accessLevel = req.session.user.accessLevel || 'owner';
+  const siteId = req.session.user.siteId;
 
-  const submitted = await db.query("SELECT COUNT(*) as count FROM service_requests WHERE client_id = $1 AND status = 'submitted'", [clientId]);
-  const inReview = await db.query("SELECT COUNT(*) as count FROM service_requests WHERE client_id = $1 AND status = 'in_review'", [clientId]);
-  const inProgress = await db.query("SELECT COUNT(*) as count FROM service_requests WHERE client_id = $1 AND status = 'in_progress'", [clientId]);
-  const complete = await db.query("SELECT COUNT(*) as count FROM service_requests WHERE client_id = $1 AND status = 'complete'", [clientId]);
+  let siteFilter = '';
+  const baseParams = [clientId];
+  if (accessLevel === 'site' && siteId) {
+    siteFilter = ' AND sr.site_id = $2';
+    baseParams.push(siteId);
+  }
+
+  const countQuery = (status) => db.query(
+    `SELECT COUNT(*) as count FROM service_requests sr WHERE sr.client_id = $1 AND sr.status = '${status}'${siteFilter}`,
+    baseParams
+  );
+
+  const submitted = await countQuery('submitted');
+  const inReview = await countQuery('in_review');
+  const inProgress = await countQuery('in_progress');
+  const complete = await countQuery('complete');
 
   const requests = await db.query(`
-    SELECT sr.*, st.name as service_type_name
+    SELECT sr.*, st.name as service_type_name, cs.site_name
     FROM service_requests sr
     JOIN service_types st ON sr.service_type_id = st.id
-    WHERE sr.client_id = $1
+    LEFT JOIN client_sites cs ON sr.site_id = cs.id
+    WHERE sr.client_id = $1${siteFilter}
     ORDER BY sr.created_at DESC
-  `, [clientId]);
+  `, baseParams);
+
+  // Get sites for owner/regional users
+  let sites = [];
+  if (accessLevel !== 'site') {
+    sites = await db.query(`
+      SELECT cs.*,
+        (SELECT COUNT(*) FROM service_requests sr WHERE sr.site_id = cs.id AND sr.status != 'complete') as open_count
+      FROM client_sites cs
+      WHERE cs.client_id = $1
+      ORDER BY cs.site_name
+    `, [clientId]);
+  }
+
+  // Check for pending emergencies
+  let pendingEmergencies = [];
+  try {
+    pendingEmergencies = await db.query(`
+      SELECT er.*, sr.description, cs.site_name
+      FROM emergency_requests er
+      JOIN service_requests sr ON er.service_request_id = sr.id
+      LEFT JOIN client_sites cs ON sr.site_id = cs.id
+      WHERE sr.client_id = $1 AND er.status = 'pending'
+    `, [clientId]);
+  } catch (e) { /* table might not exist */ }
 
   res.render('portal/dashboard', {
     title: 'Dashboard',
@@ -42,22 +89,34 @@ router.get('/', async (req, res) => {
       inProgress: inProgress[0].count,
       complete: complete[0].count
     },
-    requests
+    requests,
+    sites,
+    pendingEmergencies,
+    accessLevel
   });
 });
 
 // File Vault
 router.get('/files', async (req, res) => {
   const clientId = req.session.user.clientId;
+  const accessLevel = req.session.user.accessLevel || 'owner';
+  const siteId = req.session.user.siteId;
+
+  let siteFilter = '';
+  const params = [clientId];
+  if (accessLevel === 'site' && siteId) {
+    siteFilter = ' AND sr.site_id = $2';
+    params.push(siteId);
+  }
+
   const requests = await db.query(`
     SELECT sr.id, sr.description, st.name as service_type_name, sr.created_at
     FROM service_requests sr
     JOIN service_types st ON sr.service_type_id = st.id
-    WHERE sr.client_id = $1
+    WHERE sr.client_id = $1${siteFilter}
     ORDER BY sr.created_at DESC
-  `, [clientId]);
+  `, params);
 
-  // Get attachments for each request
   for (const r of requests) {
     r.attachments = await db.query(
       'SELECT * FROM attachments WHERE service_request_id = $1 ORDER BY created_at DESC',
@@ -65,7 +124,6 @@ router.get('/files', async (req, res) => {
     );
   }
 
-  // Filter to only requests with attachments
   const requestsWithFiles = requests.filter(r => r.attachments.length > 0);
 
   res.render('portal/files', {
@@ -81,18 +139,27 @@ router.get('/requests/new', async (req, res) => {
     'SELECT * FROM service_types WHERE client_id = $1 ORDER BY name',
     [req.session.user.clientId]
   );
+
+  // Get the user's site info
+  let userSite = null;
+  if (req.session.user.siteId) {
+    userSite = await db.get('SELECT * FROM client_sites WHERE id = $1', [req.session.user.siteId]);
+  }
+
   res.render('portal/new-request', {
     title: 'New Request',
     user: req.session.user,
     serviceTypes,
+    userSite,
     error: null
   });
 });
 
 // Submit request
 router.post('/requests', upload.array('files', 5), async (req, res) => {
-  const { service_type_id, description, urgency } = req.body;
+  const { service_type_id, description, is_emergency } = req.body;
   const clientId = req.session.user.clientId;
+  const siteId = req.session.user.siteId || null;
 
   try {
     const st = await db.get(
@@ -101,9 +168,14 @@ router.post('/requests', upload.array('files', 5), async (req, res) => {
     );
     if (!st) throw new Error('Invalid service type');
 
+    // Use preset urgency from service type
+    const urgency = st.default_urgency || 'medium';
+    const isEmergency = is_emergency === 'on' || is_emergency === '1';
+    const emergencyVal = db.type === 'pg' ? isEmergency : (isEmergency ? 1 : 0);
+
     const result = await db.run(
-      'INSERT INTO service_requests (client_id, service_type_id, description, urgency) VALUES ($1, $2, $3, $4)',
-      [clientId, service_type_id, description, urgency]
+      'INSERT INTO service_requests (client_id, service_type_id, description, urgency, site_id, is_emergency) VALUES ($1, $2, $3, $4, $5, $6)',
+      [clientId, service_type_id, description, urgency, siteId, emergencyVal]
     );
 
     if (req.files && req.files.length > 0) {
@@ -120,6 +192,18 @@ router.post('/requests', upload.array('files', 5), async (req, res) => {
       [result.lastID, 'System', 'system', `Request submitted by ${req.session.user.name}`, 'system']
     );
 
+    // If emergency, create emergency_request record
+    if (isEmergency) {
+      await db.run(
+        "INSERT INTO emergency_requests (service_request_id, status) VALUES ($1, 'pending')",
+        [result.lastID]
+      );
+      await db.run(
+        'INSERT INTO request_comments (service_request_id, author_name, author_role, comment, comment_type) VALUES ($1, $2, $3, $4, $5)',
+        [result.lastID, 'System', 'system', '⚠️ Emergency request submitted — awaiting admin approval', 'system']
+      );
+    }
+
     res.redirect('/portal');
   } catch (err) {
     console.error('Submit request error:', err);
@@ -127,10 +211,15 @@ router.post('/requests', upload.array('files', 5), async (req, res) => {
       'SELECT * FROM service_types WHERE client_id = $1 ORDER BY name',
       [clientId]
     );
+    let userSite = null;
+    if (req.session.user.siteId) {
+      userSite = await db.get('SELECT * FROM client_sites WHERE id = $1', [req.session.user.siteId]);
+    }
     res.render('portal/new-request', {
       title: 'New Request',
       user: req.session.user,
       serviceTypes,
+      userSite,
       error: 'Failed to submit request'
     });
   }
@@ -138,12 +227,24 @@ router.post('/requests', upload.array('files', 5), async (req, res) => {
 
 // Request detail
 router.get('/requests/:id', async (req, res) => {
+  const clientId = req.session.user.clientId;
+  const accessLevel = req.session.user.accessLevel || 'owner';
+  const siteId = req.session.user.siteId;
+
+  let siteFilter = '';
+  const params = [req.params.id, clientId];
+  if (accessLevel === 'site' && siteId) {
+    siteFilter = ' AND sr.site_id = $3';
+    params.push(siteId);
+  }
+
   const request = await db.get(`
-    SELECT sr.*, st.name as service_type_name
+    SELECT sr.*, st.name as service_type_name, cs.site_name
     FROM service_requests sr
     JOIN service_types st ON sr.service_type_id = st.id
-    WHERE sr.id = $1 AND sr.client_id = $2
-  `, [req.params.id, req.session.user.clientId]);
+    LEFT JOIN client_sites cs ON sr.site_id = cs.id
+    WHERE sr.id = $1 AND sr.client_id = $2${siteFilter}
+  `, params);
 
   if (!request) return res.redirect('/portal');
 
